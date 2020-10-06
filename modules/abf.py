@@ -1405,11 +1405,11 @@ class Abf:
 
         # Title
         if plot_type == "pixel":
-          plt.title("Algal bloom pixel-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d"), fontdict = {'fontsize' : 8}, pad=30)
+          plt.title("Anomaly and algal bloom pixel-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d"), fontdict = {'fontsize' : 8}, pad=30)
         elif plot_type == "grid":
-          plt.title("Algal bloom grid-wise ("+str(self.grid_size)+"x"+str(self.grid_size)+") forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d"), fontdict = {'fontsize' : 8}, pad=30)
+          plt.title("Anomaly and algal bloom grid-wise ("+str(self.grid_size)+"x"+str(self.grid_size)+") forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d"), fontdict = {'fontsize' : 8}, pad=30)
         elif plot_type == "scene":
-          plt.title("Algal bloom scene-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d"), fontdict = {'fontsize' : 8}, pad=30)
+          plt.title("Anomaly and algal bloom scene-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d"), fontdict = {'fontsize' : 8}, pad=30)
 
         # go through all dates to get rgb images
         for date in self.predict_dates:
