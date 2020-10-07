@@ -1483,7 +1483,7 @@ class Abf:
                 if len(df_grid)>0:
                   grid_sum = df_grid["label"].sum()
                   pct = int((grid_sum/len(df_grid)) * 100)
-                  df_true.loc[(df_true["row"]==row) & (df_true["column"]==column), 'color'] = color_map2[pct]
+                  df_true.loc[(df_true["row"]==row) & (df_true["column"]==column), 'color'] = color_map2[pct][0]
 
             # plot
             c = fig.add_subplot(3,len(self.predict_dates),plot_count)
@@ -1527,7 +1527,7 @@ class Abf:
             # true
             if len(df_true)>0:
               pct = int((df_true['label'].sum()/len(df_true)) * 100)
-              color = color_map2[pct]
+              color = color_map2[pct][0]
 
             # plot
             c = fig.add_subplot(3,len(self.predict_dates),plot_count)
@@ -1676,14 +1676,14 @@ class Abf:
                   grid_sum = df_grid["label"].sum()
                   pct = int((grid_sum/len(df_grid)) * 100)
                   df_merge.loc[(df_merge["row"]==row) & (df_merge["column"]==column), 'class'] = pct
-                  df_merge.loc[(df_merge["row"]==row) & (df_merge["column"]==column), 'color'] = color_map2[pct]
+                  df_merge.loc[(df_merge["row"]==row) & (df_merge["column"]==column), 'color'] = color_map2[pct][0]
                 
                 # pred
                 if len(df_grid)>0:
                   grid_sum = df_grid["label_predicted"].sum()
                   pct = int((grid_sum/len(df_grid)) * 100)
                   df_merge.loc[(df_merge["row"]==row) & (df_merge["column"]==column), 'class_predicted'] = pct
-                  df_merge.loc[(df_merge["row"]==row) & (df_merge["column"]==column), 'color_predicted'] = color_map2[pct]
+                  df_merge.loc[(df_merge["row"]==row) & (df_merge["column"]==column), 'color_predicted'] = color_map2[pct][0]
 
             # measures
             if count_pixels > 0:
