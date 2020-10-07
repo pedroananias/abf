@@ -1446,7 +1446,8 @@ class Abf:
 
             # apply color
             for index, color in enumerate(color_map):
-              df_true.loc[(df_true['label'] == index), 'color'] = color
+              #df_true.loc[(df_true['label'] == index), 'color'] = color
+              df_true['color'] = df_true['color'].map({index:color})
 
             # plot ground truth results
             c = fig.add_subplot(3,len(self.predict_dates),plot_count)
