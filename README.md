@@ -7,7 +7,7 @@ Module responsable for forecasting anomalies and algal bloom occurences based on
 ### Dependencies
 
 - Python 3.7.7 64-bit ou superior
-- Modules: oauth2client earthengine-api matplotlib pandas numpy requests pillow natsort geojson argparse logging hashlib joblib gctraceback warnings scipy seaborn sklearn tensorflow
+- Modules: oauth2client earthengine-api matplotlib pandas numpy requests pillow geojson argparse hashlib joblib warnings scipy seaborn sklearn tensorflow
 
 
 
