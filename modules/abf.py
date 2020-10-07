@@ -1447,7 +1447,8 @@ class Abf:
             # apply color
             for index, color in enumerate(color_map):
               #df_true.loc[(df_true['label'] == index), 'color'] = color
-              df_true['color'] = df_true['color'].map({index:color})
+              #df_true['color'] = df_true['color'].map({index:color})
+              df_true[(df_merge['label'] == index)]['color'] = color
 
             # plot ground truth results
             c = fig.add_subplot(3,len(self.predict_dates),plot_count)
@@ -1575,7 +1576,8 @@ class Abf:
 
           # apply color
           for index, color in enumerate(color_map):
-            df_merge.loc[(df_merge['label_predicted'] == index), 'color_predicted'] = color
+            #df_merge.loc[(df_merge['label_predicted'] == index), 'color_predicted'] = color
+            df_true[(df_merge['label_predicted'] == index)]['color_predicted'] = color
           
           # pixel plot
           if plot_type == 'pixel':
