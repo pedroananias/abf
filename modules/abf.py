@@ -932,11 +932,11 @@ class Abf:
     y = df_pixel[df_pixel.columns[-len(out_labels):]].values.reshape((-1, len(df_pixel.columns[-len(out_labels):])))
     X = self.scaler.fit_transform(X, y)
     if self.shuffle != True:
-      X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, train_size=0.95, shuffle=False, random_state=123)
+      X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, train_size=0.70, shuffle=False, random_state=123)
     else:
       print()
       print("Shuffling...")
-      X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, train_size=0.95, shuffle=True, random_state=123)
+      X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, train_size=0.70, shuffle=True, random_state=123)
 
     # check if user defined to apply reducer
     if self.reducer:
@@ -974,7 +974,7 @@ class Abf:
     # get data
     X_train, y_train                  = self.df_train
     X_test, y_test                    = self.df_test
-    X_gridsearch, _, y_gridsearch, _  = model_selection.train_test_split(X_train, y_train, train_size=0.001, random_state=123)
+    X_gridsearch, _, y_gridsearch, _  = model_selection.train_test_split(X_train, y_train, train_size=1000, random_state=123)
 
     # create df_true dataframe
     y_test_label = self.apply_label_y(y_test)
@@ -1020,9 +1020,9 @@ class Abf:
       # apply RandomizedSearchCV and get best estimator and training the model
       start_time = time.time()
       rs = model_selection.RandomizedSearchCV(estimator=tf.keras.wrappers.scikit_learn.KerasRegressor(build_fn=mlp_modified, verbose=0), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=25, cv=5, verbose=1, random_state=123, n_jobs=-1)
-      rs.fit(X_gridsearch, y_gridsearch, validation_split=0.2, batch_size=batch_size)
+      rs.fit(X_gridsearch, y_gridsearch, validation_split=0.3, batch_size=batch_size)
       mlp = rs.best_estimator_
-      mlp.fit(X_train, y_train, validation_split=0.2, batch_size=batch_size)
+      mlp.fit(X_train, y_train, validation_split=0.3, batch_size=batch_size)
 
       # training the model
       # model name
@@ -1074,7 +1074,7 @@ class Abf:
       lstm.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(int(lstm_size/2), activation='tanh')))
       lstm.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(len(self.indices_thresholds))))
       lstm.compile(optimizer='adam', loss='mse', metrics=['mae'])
-      lstm.fit(X_train.reshape(-1, self.days_in, len(self.attributes_selected)), y_train.reshape(-1, self.days_in, len(self.indices_thresholds)), epochs=epoch, validation_split=0.2, verbose=1, batch_size=batch_size)
+      lstm.fit(X_train.reshape(-1, self.days_in, len(self.attributes_selected)), y_train.reshape(-1, self.days_in, len(self.indices_thresholds)), epochs=epoch, validation_split=0.3, verbose=1, batch_size=int(batch_size/2))
 
       # training the model
       # model name
@@ -1282,6 +1282,10 @@ class Abf:
     # change cloud values
     df_predict.loc[df_predict['cloud'] == abs(self.dummy), 'cloud']                 = 0.0
     df_classification.loc[df_classification['cloud'] == abs(self.dummy), 'cloud']   = 0.0
+
+    # normalize indexes
+    df_classification           = self.normalize_indices(df=df_classification)
+    df_predict                  = self.normalize_indices(df=df_predict)
 
     # get cluds from prediction
     df_predict_clouds           = df_predict[df_predict['cloud'] != 0.0][self.df_columns_clear]
@@ -1788,7 +1792,7 @@ class Abf:
             if len(df_merge)>0:
               pct     = int((df_merge['label_predicted'].sum()/len(df_merge)) * 100)
               y_pred  = color_encoder2.transform(color_map2[pct])
-              color   = color_map2[pct]
+              color   = color_map2[pct][0]
 
             # report
             measures = misc.concordance_measures(metrics.confusion_matrix(y_true, y_pred), y_true, y_pred)
@@ -1826,7 +1830,7 @@ class Abf:
             })
 
             # plot title
-            title_plot = "Pred. (Acc:"+str(round(measures["acc"],2))+",Pct:"+str(y_pred[0])+"%)"
+            title_plot = "Pred. (Acc:"+str(round(measures["acc"],2))+",Pct:"+str(pct)+"%)"
 
             # plot
             c = fig.add_subplot(3,len(self.predict_dates),plot_count)
