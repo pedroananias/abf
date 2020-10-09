@@ -1395,6 +1395,17 @@ class Abf:
         df = pd.DataFrame(data=np.concatenate((array_lats_lons, self.classifiers[model].predict(X)), axis=1))
       self.classifiers_runtime[model] = self.classifiers_runtime[model] + (time.time() - start_time)
 
+      # model str 2
+      model_short = ''
+      if 'MLP' in model:
+        model_short = 'mlp'
+      elif 'LSTM' in model:
+        model_short = 'lstm'
+      elif 'RFRegressor' in model:
+        model_short = 'rf'
+      elif 'SVMRegressor' in model:
+        model_short = 'svm'
+
       # jump line
       print()
       print("Starting the prediction for "+str(model)+" model...")
@@ -1415,11 +1426,11 @@ class Abf:
 
         # Title
         if plot_type == "pixel":
-          plt.title("Anomaly and algal bloom pixel-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d"), fontdict = {'fontsize' : 8}, pad=30)
+          plt.title("Anomaly and algal bloom pixel-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
         elif plot_type == "grid":
-          plt.title("Anomaly and algal bloom grid-wise ("+str(self.grid_size)+"x"+str(self.grid_size)+") forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d"), fontdict = {'fontsize' : 8}, pad=30)
+          plt.title("Anomaly and algal bloom grid-wise ("+str(self.grid_size)+"x"+str(self.grid_size)+") forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
         elif plot_type == "scene":
-          plt.title("Anomaly and algal bloom scene-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d"), fontdict = {'fontsize' : 8}, pad=30)
+          plt.title("Anomaly and algal bloom scene-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
 
         # go through all dates to get rgb images
         for date in self.predict_dates:
@@ -1648,7 +1659,7 @@ class Abf:
             if count_pixels > 0:
               c.scatter(df_merge['lat'], df_merge['lon'], marker='s', s=markersize_scatter, c=df_merge['color_predicted'].values, edgecolors='none')
             if i == len(self.predict_dates)-1:
-              c.legend(legends_colors, legends_colors_captions, loc='upper center', bbox_to_anchor=(0.1, -0.14), ncol=3, fontsize='x-small', fancybox=True, shadow=True)
+              c.legend(legends_colors, legends_colors_captions, loc='upper center', bbox_to_anchor=(-0.18, -0.28), ncol=3, fontsize='x-small', fancybox=True, shadow=True)
             c.margins(x=0,y=0)
             plot_count += 1
 
@@ -1756,7 +1767,7 @@ class Abf:
             if count_pixels > 0:
               c.scatter(df_merge['lat'], df_merge['lon'], marker='s', s=markersize_scatter, c=df_merge['color_predicted'].values, edgecolors='none')
             if i == len(self.predict_dates)-1:
-              c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.1, -0.14), ncol=3, fontsize='x-small', fancybox=True, shadow=True)
+              c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.28, -0.28), ncol=3, fontsize='x-small', fancybox=True, shadow=True)
             c.margins(x=0,y=0)
             plot_count += 1
 
@@ -1766,12 +1777,12 @@ class Abf:
               for index, row in df_merge.iterrows():
                 features.append(ee.Feature(ee.Geometry.Point(row['lat'],row['lon']), {"label": int(row['label_predicted']), "class": int(row['class_predicted'])}))
               fc = ee.FeatureCollection(features)
-              f = open(folder+"/geojson/anomaly_pred_"+str(model)+"_"+str(date.strftime("%Y-%m-%d"))+".json","wb")
+              f = open(folder+"/geojson/anomaly_pred_"+str(model_short)+"_"+str(date.strftime("%Y-%m-%d"))+".json","wb")
               f.write(requests.get(fc.getDownloadURL('GEO_JSON'), allow_redirects=True, timeout=60).content)
               f.close()
 
             # save dataframes
-            df_merge.to_csv(folder+'/csv/df_prediction_'+str(model)+'_'+str(date.strftime("%Y-%m-%d"))+'.csv')
+            df_merge.to_csv(folder+'/csv/df_prediction_'+str(model_short)+'_'+str(date.strftime("%Y-%m-%d"))+'.csv')
 
           # scene
           elif plot_type == 'scene':
@@ -1850,12 +1861,12 @@ class Abf:
             if count_pixels > 0:
               c.scatter(df_merge['lat'], df_merge['lon'], marker='s', s=markersize_scatter, c=color, edgecolors='none')
             if i == len(self.predict_dates)-1:
-              c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.1, -0.14), ncol=3, fontsize='x-small', fancybox=True, shadow=True)
+              c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.28, -0.28), ncol=3, fontsize='x-small', fancybox=True, shadow=True)
             c.margins(x=0,y=0)
             plot_count += 1
 
         # save plot
-        fig.savefig(folder+'/image/results_'+str(plot_type)+'_'+str(model)+'.png')
+        fig.savefig(folder+'/image/results_'+str(plot_type)+'_'+str(model_short)+'.png')
 
       # clear
       del df
