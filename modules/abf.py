@@ -30,6 +30,7 @@ import re
 import time
 import geojson
 import warnings
+import multiprocessing
 from io import BytesIO
 from datetime import datetime as dt
 from datetime import timedelta as td
@@ -44,7 +45,7 @@ from matplotlib import cm
 from matplotlib.patches import Rectangle
 
 # Machine Learning
-from sklearn import preprocessing, svm, model_selection, metrics, feature_selection, ensemble, multioutput, decomposition
+from sklearn import preprocessing, svm, model_selection, metrics, feature_selection, ensemble, multioutput, decomposition, manifold
 
 # Deep Learning
 import tensorflow as tf
@@ -65,6 +66,8 @@ class Abf:
   cloud_threshold             = 0.50 # only images where clear pixels are greater thans 50%
   max_tile_pixels             = 10000000 # if higher, will split the geometry into tiles
   indices_thresholds          = {'ndwi': 0.3, 'ndvi': -0.15, 'sabi': -0.10, 'fai': -0.016}
+  n_cores                     = int(multiprocessing.cpu_count()*0.75) # only 75% of available cores
+  random_state                = 123 # random state used in numpy and related shuffling problems
 
   # attributes
   attributes                  = ['cloud', 'ndwi', 'ndvi', 'sabi', 'fai', 'wind', 'temperature', 'drainage_direction', 'precipitation', 'elevation', 'pressure', 'evapotranspiration', 'emissivity']
@@ -443,7 +446,7 @@ class Abf:
 
 
   # apply Reducer analysis
-  def apply_reducer(self, X_train, X_test):
+  def apply_reducer(self, X_train, X_test, mode=1):
 
     # warning
     print()
@@ -451,15 +454,28 @@ class Abf:
 
     # start
     n_features_start  = X_train.shape[1]
-    
-    # apply REDUCER
-    #vt                = feature_selection.VarianceThreshold(threshold=.3)
-    #X_train           = vt.fit_transform(X_train)
-    #X_test            = vt.transform(X_test)
-    pca               = decomposition.PCA(.99)
-    X_train           = pca.fit(X_train).transform(X_train)
-    X_test            = pca.transform(X_test)
-    self.reducer      = pca
+
+    # apply reducer
+    if mode==1:
+        pca               = decomposition.PCA(.999, random_state=self.random_state)
+        X_train           = pca.fit_transform(X_train)
+        X_test            = pca.transform(X_test)
+        self.reducer      = pca
+    elif mode==2:
+        iso               = manifold.Isomap(n_components=int(n_features_start*0.75),n_jobs=self.n_cores)
+        X_train           = iso.fit_transform(X_train)
+        X_test            = iso.transform(X_test)
+        self.reducer      = iso
+    elif mode==3:
+        lle               = manifold.LocallyLinearEmbedding(n_components=int(n_features_start*0.75),n_jobs=self.n_cores,random_state=self.random_state)
+        X_train           = lle.fit_transform(X_train)
+        X_test            = lle.transform(X_test)
+        self.reducer      = lle
+    elif mode==4:
+        mlle              = manifold.LocallyLinearEmbedding(n_components=int(n_features_start*0.75),method='modified',n_neighbors=10,n_jobs=self.n_cores,random_state=self.random_state)
+        X_train           = mlle.fit_transform(X_train)
+        X_test            = mlle.transform(X_test)
+        self.reducer      = mlle
 
     # finish
     n_features_end    = X_train.shape[1]
@@ -932,11 +948,11 @@ class Abf:
     y = df_pixel[df_pixel.columns[-len(out_labels):]].values.reshape((-1, len(df_pixel.columns[-len(out_labels):])))
     X = self.scaler.fit_transform(X, y)
     if self.shuffle != True:
-      X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, train_size=0.70, shuffle=False, random_state=123)
+      X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, train_size=0.95, shuffle=False, random_state=self.random_state)
     else:
       print()
       print("Shuffling...")
-      X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, train_size=0.70, shuffle=True, random_state=123)
+      X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, train_size=0.95, shuffle=True, random_state=self.random_state)
 
     # check if user defined to apply reducer
     if self.reducer:
@@ -974,7 +990,7 @@ class Abf:
     # get data
     X_train, y_train                  = self.df_train
     X_test, y_test                    = self.df_test
-    X_gridsearch, _, y_gridsearch, _  = model_selection.train_test_split(X_train, y_train, train_size=1000, random_state=123)
+    X_gridsearch, _, y_gridsearch, _  = model_selection.train_test_split(X_train, y_train, train_size=0.005, random_state=self.random_state)
 
     # create df_true dataframe
     y_test_label = self.apply_label_y(y_test)
@@ -1019,10 +1035,10 @@ class Abf:
 
       # apply RandomizedSearchCV and get best estimator and training the model
       start_time = time.time()
-      rs = model_selection.RandomizedSearchCV(estimator=tf.keras.wrappers.scikit_learn.KerasRegressor(build_fn=mlp_modified, verbose=0), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=25, cv=5, verbose=1, random_state=123, n_jobs=-1)
+      rs = model_selection.RandomizedSearchCV(estimator=tf.keras.wrappers.scikit_learn.KerasRegressor(build_fn=mlp_modified, verbose=1), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       rs.fit(X_gridsearch, y_gridsearch, validation_split=0.3, batch_size=batch_size)
       mlp = rs.best_estimator_
-      mlp.fit(X_train, y_train, validation_split=0.3, batch_size=batch_size)
+      #mlp.fit(X_train, y_train, validation_split=0.3, batch_size=batch_size)
 
       # training the model
       # model name
@@ -1056,7 +1072,7 @@ class Abf:
 
       # jump line
       print()
-      print("Creating the LSTM (Bidirection w/ Encoder-Decoder) with RandomizedSearchCV parameterization model...")
+      print("Creating the LSTM (Bidirection w/ Encoder-Decoder) model...")
 
       # attributes
       dropout     = 0.5
@@ -1074,7 +1090,7 @@ class Abf:
       lstm.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(int(lstm_size/2), activation='tanh')))
       lstm.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(len(self.indices_thresholds))))
       lstm.compile(optimizer='adam', loss='mse', metrics=['mae'])
-      lstm.fit(X_train.reshape(-1, self.days_in, len(self.attributes_selected)), y_train.reshape(-1, self.days_in, len(self.indices_thresholds)), epochs=epoch, validation_split=0.3, verbose=1, batch_size=int(batch_size/2))
+      lstm.fit(X_gridsearch.reshape(-1, self.days_in, len(self.attributes_selected)), y_gridsearch.reshape(-1, self.days_in, len(self.indices_thresholds)), epochs=epoch, validation_split=0.3, verbose=1, batch_size=int(batch_size/2))
 
       # training the model
       # model name
@@ -1122,10 +1138,10 @@ class Abf:
 
       # apply RandomizedSearchCV and get best estimator and training the model
       start_time = time.time()
-      rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(n_jobs=-1, verbose=0, random_state=123), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=25, cv=5, verbose=1, random_state=123, n_jobs=-1)
+      rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(n_jobs=n_cores, verbose=1, random_state=self.random_state), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       rs.fit(X_gridsearch, y_gridsearch)
       rf = rs.best_estimator_
-      rf.fit(X_train, y_train)
+      #rf.fit(X_train, y_train)
 
       # model name
       str_model = "RFRegressor (n_estimators="+str(rs.best_params_['n_estimators'])+",max_features="+str(rs.best_params_['max_features'])+",max_depth="+str(rs.best_params_['max_depth'])+",min_samples_leaf="+str(rs.best_params_['min_samples_leaf'])+",min_samples_split="+str(rs.best_params_['min_samples_split'])+",bootstrap="+str(rs.best_params_['bootstrap'])+")"
@@ -1180,15 +1196,15 @@ class Abf:
 
       # reduce the training size
       # SVM is too slow to deal with high amount of data
-      X_train, X_test, y_train, y_test = model_selection.train_test_split(self.df_train[0], self.df_train[1], train_size=0.01, random_state=123)
-      y_test_label = self.apply_label_y(y_test)
+      #X_train, X_test, y_train, y_test = model_selection.train_test_split(self.df_train[0], self.df_train[1], train_size=0.01, random_state=123)
+      #y_test_label = self.apply_label_y(y_test)
 
       # apply RandomizedSearchCV and get best estimator
       start_time = time.time()
-      rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputRegressor(svm.SVR(verbose=0), n_jobs=-1), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=25, cv=5, verbose=1, random_state=123, n_jobs=-1)
+      rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputRegressor(svm.SVR(verbose=1), n_jobs=-1), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       rs.fit(X_gridsearch, y_gridsearch)
       svm_model = rs.best_estimator_
-      svm_model.fit(X_train, y_train)
+      #svm_model.fit(X_train, y_train)
       
       # model name
       str_model = "SVMRegressor (kernel="+str(rs.best_params_['estimator__kernel'])+",C="+str(rs.best_params_['estimator__C'])+",gamma="+str(rs.best_params_['estimator__gamma'])+",epsilon="+str(rs.best_params_['estimator__epsilon'])+",shrinking="+str(rs.best_params_['estimator__shrinking'])+")"
