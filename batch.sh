@@ -33,7 +33,7 @@ do
 		do
 			for days_in in 5 7 10
 			do
-				for day_threshold in 365 180
+				for day_threshold in 180 365 730
 				do
 					eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --days_in=$days_in --model=$model --days_threshold=$day_threshold --fill_missing=$fill_missing $reducer"
 				done
