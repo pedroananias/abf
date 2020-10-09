@@ -86,11 +86,11 @@ parser = argparse.ArgumentParser(description=version)
 # create arguments
 parser.add_argument('--lat_lon', dest='lat_lon', action='store', default="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826",
                    help="Two diagnal points (Latitude 1, Longitude 1, Latitude 2, Longitude 2) of the study area")
-parser.add_argument('--from_date', dest='from_date', action='store', default="2019-07-12",
+parser.add_argument('--from_date', dest='from_date', action='store', default="2019-07-11",
                    help="Date to end time series (it will forecast 5 days starting from this date)")
 parser.add_argument('--name', dest='name', action='store', default="erie",
                    help="Place where to save generated files")
-parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=1825,
+parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=365,
                    help="Days threshold used to build the timeseries and training set")
 parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=5,
                    help="Day threshold to be used as input forecast")

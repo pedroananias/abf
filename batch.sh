@@ -9,8 +9,9 @@ SCRIPT="script.py"
 CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ARRAYS
-declare -a MODELS=("rf" "ocsvm")
+declare -a MODELS=("rf" "ocsvm" "lstm" "mlp")
 declare -a REDUCER=("" "--reducer")
+declare -a FILLS_MISSING=("time" "dummy" "akima")
 
 # SHOW BASE DIR
 echo "$PYTHON $BASEDIR/$SCRIPT"
@@ -24,15 +25,18 @@ LAT_LON="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337
 FROM_DATE="2019-07-11"
 
 # EXECUTIONS
-for reducer in "${REDUCER[@]}"
+for model in "${MODELS[@]}"
 do
-	for model in "${MODELS[@]}"
+	for fill_missing in "${FILLS_MISSING[@]}"
 	do
-		for days_in in 5 10 15 30
+		for reducer in "${REDUCER[@]}"
 		do
-			for day_threshold in 1825 730 365
+			for days_in in 5 7 10
 			do
-				eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --days_in=$days_in --model=$model --days_threshold=$day_threshold $reducer"
+				for day_threshold in 365 180
+				do
+					eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --days_in=$days_in --model=$model --days_threshold=$day_threshold --fill_missing=$fill_missing $reducer"
+				done
 			done
 		done
 	done
@@ -50,15 +54,18 @@ LAT_LON="85.08856074928927,19.698732779758075,85.28279700936078,19.5468193549138
 FROM_DATE="2020-03-30"
 
 # EXECUTIONS
-for reducer in "${REDUCER[@]}"
+for model in "${MODELS[@]}"
 do
-	for model in "${MODELS[@]}"
+	for fill_missing in "${FILLS_MISSING[@]}"
 	do
-		for days_in in 5 10 15 30
+		for reducer in "${REDUCER[@]}"
 		do
-			for day_threshold in 1825 730 365
+			for days_in in 5 7 10
 			do
-				eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --days_in=$days_in --model=$model --days_threshold=$day_threshold $reducer"
+				for day_threshold in 365 180
+				do
+					eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --days_in=$days_in --model=$model --days_threshold=$day_threshold --fill_missing=$fill_missing $reducer"
+				done
 			done
 		done
 	done

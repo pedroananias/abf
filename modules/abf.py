@@ -143,7 +143,7 @@ class Abf:
   # constructor
   def __init__(self,
                geometry:          ee.Geometry,
-               days_threshold:    int           = 1825,
+               days_threshold:    int           = 365,
                grid_size:         int           = 3,
                sensor:            str           = "modis",
                scale:             int           = None,
@@ -462,17 +462,7 @@ class Abf:
         X_test            = pca.transform(X_test)
         self.reducer      = pca
     elif mode==2:
-        iso               = manifold.Isomap(n_components=int(n_features_start*0.75),n_jobs=self.n_cores)
-        X_train           = iso.fit_transform(X_train)
-        X_test            = iso.transform(X_test)
-        self.reducer      = iso
-    elif mode==3:
-        lle               = manifold.LocallyLinearEmbedding(n_components=int(n_features_start*0.75),n_jobs=self.n_cores,random_state=self.random_state)
-        X_train           = lle.fit_transform(X_train)
-        X_test            = lle.transform(X_test)
-        self.reducer      = lle
-    elif mode==4:
-        mlle              = manifold.LocallyLinearEmbedding(n_components=int(n_features_start*0.75),method='modified',n_neighbors=10,n_jobs=self.n_cores,random_state=self.random_state)
+        mlle              = manifold.LocallyLinearEmbedding(n_neighbors=n_features_start,n_components=int(n_features_start*0.75),method='modified',n_jobs=self.n_cores,random_state=self.random_state)
         X_train           = mlle.fit_transform(X_train)
         X_test            = mlle.transform(X_test)
         self.reducer      = mlle
@@ -587,7 +577,7 @@ class Abf:
     
     # fix index and final data
     df['index']   = np.arange(start=0, stop=len(df), step=1, dtype=np.int64)
-    df['doy']     = pd.to_datetime(df['date'], format='%Y-%m-%d', errors='ignore').dt.dayofyear
+    df['doy']     = pd.to_datetime(df['date'], format='%Y-%m-%d', errors='ignore').dt.month
 
     # return result
     gc.collect()
@@ -613,7 +603,7 @@ class Abf:
     # fix other columns
     df[['lat','lon']]       = df[['lat','lon']].astype(dtype=np.float64, errors='ignore')
     df['date']              = pd.to_datetime(df['date'], errors='ignore')
-    df['doy']               = pd.to_datetime(df['date'], format='%Y-%m-%d', errors='ignore').dt.dayofyear.astype(dtype=np.int64, errors='ignore')
+    df['doy']               = pd.to_datetime(df['date'], format='%Y-%m-%d', errors='ignore').dt.month.astype(dtype=np.int64, errors='ignore')
 
     # fix column order
     df[self.attributes]     = df[self.attributes].apply(pd.to_numeric, errors='ignore')
@@ -990,7 +980,7 @@ class Abf:
     # get data
     X_train, y_train                  = self.df_train
     X_test, y_test                    = self.df_test
-    X_gridsearch, _, y_gridsearch, _  = model_selection.train_test_split(X_train, y_train, train_size=0.005, random_state=self.random_state)
+    X_gridsearch, _, y_gridsearch, _  = model_selection.train_test_split(X_train, y_train, train_size=0.01, random_state=self.random_state)
 
     # create df_true dataframe
     y_test_label = self.apply_label_y(y_test)
@@ -1138,7 +1128,7 @@ class Abf:
 
       # apply RandomizedSearchCV and get best estimator and training the model
       start_time = time.time()
-      rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(n_jobs=n_cores, verbose=1, random_state=self.random_state), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+      rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(n_jobs=self.n_cores, verbose=1, random_state=self.random_state), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       rs.fit(X_gridsearch, y_gridsearch)
       rf = rs.best_estimator_
       #rf.fit(X_train, y_train)
