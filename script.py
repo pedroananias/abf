@@ -241,7 +241,7 @@ try:
 
 
   # add results do dataframe
-  description = str(args.name)+"-"+str(args.model)+"-"+str(args.from_date)+"-"+str(args.days_threshold)+"-"+str(args.days_in)+'-'+str(args.days_out)+'-'+str(args.reducer)
+  description = str(args.name)+"-"+str(args.model)+"-"+str(args.from_date)+"-"+str(args.days_threshold)+"-"+str(args.days_in)+'-'+str(args.days_out)+'-'+str(args.reducer)+'-'+str(args.fill_missing)
   for index, row in algorithm.df_results.iterrows():
     df_results.loc[len(df_results)] = {
       'model':   description+'-'+str(row['type']),
