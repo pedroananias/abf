@@ -30,9 +30,9 @@ python /path/to/abf/script.py --lat_lon=-83.48811946836814,41.85776095627803,-83
 
 ### What are the results?
 
-The script will generate a 5-days forecast of occurrence of algae blooming in the inserted study area starting from input date. Therefore, a folder located in 'data' is created and named based on the date and version of the script executed. Example: /path/to/abyo/data/20200701_111426[v=V13-erie,date=2019-07-11,dt=1825,gs=3,din=5,dout=5,mop=None,mit=1,cv=False,cvr=1,sf=True,m=rf,fill=time,rd=False]. 
+The script will generate a 5-days forecast of occurrence of algae blooming in the inserted study area starting from input date. Therefore, a folder located in 'data' is created and named based on the date and version of the script executed. Example: /path/to/abyo/data/20201026_090433[v=V14-erie,d=2019-07-11,dt=90,din=5,dout=3,m=rf,f=time,rd=False,n=False,c=True,cw=False,p=False]. 
 
-ATTENTION: big date range tends to lead to memory leak, stopping the script execution. It is alwaysa a good pratice to split the dates in two or three parts, unless you have a big amount of memory in your computer.
+ATTENTION: big date range tends to lead to memory leak, stopping the script execution. It is always a good pratice to split the dates in two or three parts, unless you have a big amount of memory in your computer.
 
 The following results are generated:
 

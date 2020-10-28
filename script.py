@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-##################################################################################################################
+#####################################################################################################################################
 # ### ABF - Anomaly and Algal Bloom Forecast
 # ### Script responsible for executing the anomaly and algal bloom forecast using machine learning and deep learning
 # ### Python 3.7 64Bits is required!
@@ -48,10 +48,15 @@
 # - Version 13: 
 # - Added new indices: SABI and NDWI
 # - Added RandomizedSearchCV to MLP
-#######################################################################################################################
+#
+# - Version 14: 
+# - Added parameter 'normalized': when activated, it will normalized indices values to range -1 and 1 (ndwi, ndvi and sabi)
+# - Added 'class_mode' (regression modelling process) and 'class_weight' (it will assign weights to classes before the training process) parameters
+# - Added parameter 'propagate: when activated, it will propagate predictions from one day to another in prediction date range
+#####################################################################################################################################
 
 # ### Version
-version = "V13"
+version = "V14"
 
 
 
@@ -99,13 +104,21 @@ parser.add_argument('--days_out', dest='days_out', action='store', type=int, def
 parser.add_argument('--model', dest='model', action='store', default=None,
                    help="Select the desired module: mlp, lstm, rf, svm or all (None)")
 parser.add_argument('--fill_missing', dest='fill_missing', action='store', default="time",
-                   help="Define algorithm to be used to fill empty dates and values: dummy, ffill, bfill, time, slinear, pchip, quadratic, cubic, akima")
+                   help="Defines algorithm to be used to fill empty dates and values: dummy, ffill, bfill, time, linear")
 parser.add_argument('--grid_size', dest='grid_size', action='store', type=int, default=3,
                    help="Grid size that will be used in prediction")
 parser.add_argument('--remove_dummies', dest='remove_dummies', action='store_true',
-                   help="Define if the dummies will be removed before training (only works with fill_missing=dummy)")
+                   help="Defines if the dummies will be removed before training (only works with fill_missing=dummy)")
 parser.add_argument('--reducer', dest='reducer', action='store_true',
-                   help="Define if reducer will be applied to remove unnecessary features")
+                   help="Defines if reducer will be applied to remove unnecessary features")
+parser.add_argument('--non_normalized', dest='non_normalized', action='store_false',
+                   help="Defines if normalization (-1,1) will not be applied to indices ndwi, ndvi and sabi")
+parser.add_argument('--class_mode', dest='class_mode', action='store_true',
+                   help="Defines whether will use raw values or classes in the regression models")
+parser.add_argument('--class_weight', dest='class_weight', action='store_true',
+                   help="Defines whether classes will have defined weights for each")
+parser.add_argument('--propagate', dest='propagate', action='store_true',
+                   help="Defines whether predictions will be propagate ahead")         
 parser.add_argument('--save_pairplots', dest='save_pairplots', action='store_true',
                    help="Save pairplots from attributes and indices")
 parser.add_argument('--save_grid', dest='save_grid', action='store_true',
@@ -168,7 +181,7 @@ try:
     df_results = pd.read_csv(path_df_results).drop(['Unnamed: 0'], axis=1)
 
   # default configuration
-  batch_size      = 4096
+  batch_size      = 2048
   morph_op        = None
   morph_op_iters  = 1
   convolve        = False
@@ -176,7 +189,7 @@ try:
   shuffle         = True
   
   # folder to save results from algorithm at
-  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',date='+str(args.from_date)+',dt='+str(args.days_threshold)+',gs='+str(args.grid_size)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',mop='+str(morph_op)+',mit='+str(morph_op_iters)+',cv='+str(convolve)+',cvr='+str(convolve_radius)+',sf='+str(shuffle)+',m='+str(args.model)+',fill='+str(args.fill_missing)+',rd='+str(args.remove_dummies)+']'
+  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',f='+str(args.fill_missing)+',rd='+str(args.remove_dummies)+',n='+str(args.non_normalized)+',c='+str(args.class_mode)+',cw='+str(args.class_weight)+',p='+str(args.propagate)+']'
   if not os.path.exists(folder):
     os.mkdir(folder)
 
@@ -199,9 +212,13 @@ try:
                       model=args.model,
                       fill_missing=args.fill_missing,
                       remove_dummies=args.remove_dummies,
-                      test_mode=False,
+                      reducer=args.reducer,
+                      normalized=args.non_normalized,
+                      class_mode=args.class_mode,
+                      class_weight=args.class_weight,
+                      propagate=args.propagate,
                       shuffle=shuffle,
-                      reducer=args.reducer)
+                      test_mode=False)
 
   # preprocessing
   algorithm.process_timeseries_data()
@@ -241,7 +258,7 @@ try:
 
 
   # add results do dataframe
-  description = str(args.name)+"-"+str(args.model)+"-"+str(args.from_date)+"-"+str(args.days_threshold)+"-"+str(args.days_in)+'-'+str(args.days_out)+'-'+str(args.reducer)+'-'+str(args.fill_missing)
+  description = str(args.name)+"-"+str(args.model)+"-"+str(args.from_date)+"-"+str(args.days_threshold)+"-"+str(args.days_in)+'-'+str(args.days_out)+'-'+str(args.reducer)+'-'+str(args.fill_missing)+'-'+str(args.non_normalized)+'-'+str(args.class_mode)+'-'+str(args.class_weight)+'-'+str(args.propagate)
   for index, row in algorithm.df_results.iterrows():
     df_results.loc[len(df_results)] = {
       'model':   description+'-'+str(row['type']),
