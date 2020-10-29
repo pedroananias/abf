@@ -40,7 +40,7 @@ do
 				do
 					for fill_missing in "${FILLS_MISSING[@]}"
 					do
-						for propagate in "${NORMALIZE[@]}"
+						for propagate in "${PROPAGATE[@]}"
 						do
 							for normalized in "${NORMALIZE[@]}"
 							do
