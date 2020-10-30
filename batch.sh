@@ -9,7 +9,7 @@ SCRIPT="script.py"
 CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ARRAYS
-declare -a MODELS=("mlp") #"rf" "svm" "lstm" "mlp"
+declare -a MODELS=("lstm") #"rf" "svm" "lstm" "mlp"
 declare -a FILLS_MISSING=("time")
 declare -a REDUCER=("" "--reducer")
 declare -a CLASS_MODE=("" "--class_mode" "--class_mode --class_weight")
