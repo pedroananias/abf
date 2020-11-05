@@ -167,6 +167,7 @@ class Abf:
                class_mode:        bool          = False,
                class_weight:      bool          = False,
                propagate:         bool          = False,
+               gs_train_size:     float         = 0.01,
                test_mode:         bool          = False):
     
     # get sensor parameters
@@ -200,6 +201,11 @@ class Abf:
     self.class_mode                 = class_mode
     self.class_weight               = class_weight
     self.propagate                  = propagate
+    self.gs_train_size              = gs_train_size
+
+    # fix days_in and days_out for LSTM mode
+    if self.model is None or self.model == "lstm":
+      self.days_out = self.days_in
 
     # faster loading
     if not test_mode:
@@ -248,7 +254,7 @@ class Abf:
       self.splitted_geometry            = self.split_geometry()
 
       # warning
-      print("Statistics: scale="+str(self.sensor_params['scale'])+" meters, pixels="+str(self.sample_total_pixel)+", initial_date='"+self.dates_timeseries[0].strftime("%Y-%m-%d")+"', end_date='"+self.dates_timeseries[1].strftime("%Y-%m-%d")+"', interval_images='"+str(self.collection.size().getInfo())+"', interval_unique_images='"+str(len(self.dates_timeseries_interval))+"', water_mask_images='"+str(self.collection_water.size().getInfo())+"', grid_size='"+str(self.grid_size)+"', days_in='"+str(self.days_in)+"', days_out='"+str(self.days_out)+"', morph_op='"+str(self.morph_op)+"', morph_op_iters='"+str(self.morph_op_iters)+"', convolve='"+str(self.convolve)+"', convolve_radius='"+str(self.convolve_radius)+"', scaler='"+str(self.scaler_str)+"', model='"+str(self.model)+"', fill_missing='"+str(self.fill_missing)+"', reducer='"+str(self.reducer)+"'")
+      print("Statistics: scale="+str(self.sensor_params['scale'])+" meters, pixels="+str(self.sample_total_pixel)+", initial_date='"+self.dates_timeseries[0].strftime("%Y-%m-%d")+"', end_date='"+self.dates_timeseries[1].strftime("%Y-%m-%d")+"', interval_images='"+str(self.collection.size().getInfo())+"', interval_unique_images='"+str(len(self.dates_timeseries_interval))+"', water_mask_images='"+str(self.collection_water.size().getInfo())+"', grid_size='"+str(self.grid_size)+"', days_in='"+str(self.days_in)+"', days_out='"+str(self.days_out)+"', morph_op='"+str(self.morph_op)+"', morph_op_iters='"+str(self.morph_op_iters)+"', convolve='"+str(self.convolve)+"', convolve_radius='"+str(self.convolve_radius)+"', scaler='"+str(self.scaler_str)+"', model='"+str(self.model)+"', fill_missing='"+str(self.fill_missing)+"', reducer='"+str(self.reducer)+"', normalized='"+str(self.normalized)+"', class_mode='"+str(self.class_mode)+"', class_weight='"+str(self.class_weight)+"', propagate='"+str(self.propagate)+"', gs_train_size='"+str(self.gs_train_size)+"'")
 
       # gargage collect
       gc.collect()
@@ -510,7 +516,7 @@ class Abf:
   def get_cache_files(self, date):
     prefix            = self.hash_string.encode()+self.lat_lon.encode()+self.sensor.encode()+str(self.morph_op).encode()+str(self.morph_op_iters).encode()+str(self.convolve).encode()+str(self.convolve_radius).encode()
     hash_image        = hashlib.md5(prefix+(date.strftime("%Y-%m-%d")+'original').encode())
-    hash_timeseries   = hashlib.md5(prefix+(self.dates_timeseries[0].strftime("%Y-%m-%d")+self.dates_timeseries[1].strftime("%Y-%m-%d")).encode())
+    hash_timeseries   = hashlib.md5(prefix+(self.dates_timeseries[0].strftime("%Y-%m-%d")+self.dates_timeseries[1].strftime("%Y-%m-%d")).encode()+str(self.days_in).encode()+str(self.days_out).encode()+str(self.normalized).encode()+str(self.fill_missing).encode()+str(self.reducer).encode()+str(self.class_mode).encode())
     hash_classifiers  = hashlib.md5(prefix+(self.dates_timeseries[0].strftime("%Y-%m-%d")+self.dates_timeseries[1].strftime("%Y-%m-%d")).encode()+('classifier').encode())
     hash_runtime      = hashlib.md5(prefix+(self.dates_timeseries[0].strftime("%Y-%m-%d")+self.dates_timeseries[1].strftime("%Y-%m-%d")).encode()+('runtime').encode())
     return [self.cache_path+'/'+hash_image.hexdigest(), self.cache_path+'/'+hash_timeseries.hexdigest(), self.cache_path+'/'+hash_classifiers.hexdigest(), self.cache_path+'/'+hash_runtime.hexdigest()]
@@ -971,7 +977,7 @@ class Abf:
       X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, train_size=0.95, shuffle=True, random_state=self.random_state)
 
     # check if user defined to apply reducer
-    if self.reducer:
+    if not self.model is None and not self.model == "lstm" and self.reducer:
       X_train, X_test   = self.apply_reducer(X_train, X_test)
 
     # building array of final dataframes splitting by train and test sets
@@ -1006,7 +1012,7 @@ class Abf:
     # get data
     X_train, y_train                  = self.df_train
     X_test, y_test                    = self.df_test
-    X_gridsearch, _, y_gridsearch, _  = model_selection.train_test_split(X_train, y_train, train_size=0.01, random_state=self.random_state)
+    X_gridsearch, _, y_gridsearch, _  = model_selection.train_test_split(X_train, y_train, train_size=self.gs_train_size, random_state=self.random_state)
 
     # compute class weight from gridsearch dataset
     classes = None
@@ -1126,6 +1132,7 @@ class Abf:
         def fit(self, x, y, **kwargs):
           kwargs = self.filter_sk_params(tf.keras.Sequential.predict_classes, kwargs)
           sample_weight = np.array([class_weight2[y_] for y_ in np.mean(y, axis=1).astype("int32")]) if class_weight2 else None
+          sample_weight = None
           x = x.reshape(-1, days_in, in_size)
           y = y.reshape(-1, days_out, out_size)
           return super(tf.keras.wrappers.scikit_learn.KerasRegressor, self).fit(x, y, validation_split=0.3, batch_size=int(batch_size/2), sample_weight=sample_weight, **kwargs)
@@ -1144,14 +1151,14 @@ class Abf:
             tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(int(size), activation='tanh', return_sequences=True)),
             tf.keras.layers.Dropout(dropout),
             tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(int(size), activation='tanh')),
-            tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(out_size))
+            tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(int(out_size)))
           ]
         )
         lstm_modified.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
         return lstm_modified
 
       def lstm_scorer(y_true, y_pred):
-          return -metrics.mean_squared_error(y_true.astype("int32").reshape(1,-1)[0], y_pred.astype("int32").reshape(1,-1)[0])
+        return -metrics.mean_squared_error(y_true.reshape(1,-1)[0], y_pred.reshape(1,-1)[0])
       ##################################
 
       # RandomizedSearchCV
@@ -1164,7 +1171,7 @@ class Abf:
 
       # apply RandomizedSearchCV and get best estimator and training the model
       start_time = time.time()
-      rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=lstm_modified, verbose=1), param_distributions=random_grid, scoring=metrics.make_scorer(lstm_scorer, greater_is_better=True), n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+      rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=lstm_modified, verbose=1), param_distributions=random_grid, scoring=metrics.make_scorer(lstm_scorer), n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       rs.fit(X_gridsearch, y_gridsearch)
       lstm = rs.best_estimator_
 
@@ -1411,7 +1418,7 @@ class Abf:
 
     # splitting training and testing sets
     X                           = self.scaler.transform(df_classification_proc[in_labels].values.reshape((-1, len(in_labels))))
-    if self.reducer:
+    if not self.model is None and not self.model == "lstm" and self.reducer:
       X = self.reducer.transform(X)
 
     # Final statistics
@@ -1486,7 +1493,10 @@ class Abf:
 
       # check if model is LSTM
       if 'LSTM' in model:
-        y_pred = self.classifiers[model].predict(X.reshape(-1, self.days_in, len(self.attributes_selected))).reshape(-1, self.days_in*len(self.indices_thresholds))
+        if self.class_mode:
+          y_pred = self.classifiers[model].predict(X.reshape(-1, self.days_in, 1)).reshape(-1, self.days_in*1)
+        else:
+          y_pred = self.classifiers[model].predict(X.reshape(-1, self.days_in, len(self.attributes_selected))).reshape(-1, self.days_in*len(self.indices_thresholds))
         df = pd.DataFrame(data=np.concatenate((array_lats_lons, y_pred), axis=1))
       # regular model
       else:
@@ -1516,12 +1526,15 @@ class Abf:
 
           # scale prediction dataset
           X = self.scaler.transform(df_classification_proc[in_labels].values.reshape((-1, len(in_labels))))
-          if self.reducer:
+          if not self.model is None and not self.model == "lstm" and self.reducer:
             X = self.reducer.transform(X)
 
           # check if model is LSTM to format dataset for it
           if 'LSTM' in model:
-            y_pred = self.classifiers[model].predict(X.reshape(-1, self.days_in, len(self.attributes_selected))).reshape(-1, self.days_in*len(self.indices_thresholds))
+            if self.class_mode:
+              y_pred = self.classifiers[model].predict(X.reshape(-1, self.days_in, 1)).reshape(-1, self.days_in*1)
+            else:
+              y_pred = self.classifiers[model].predict(X.reshape(-1, self.days_in, len(self.attributes_selected))).reshape(-1, self.days_in*len(self.indices_thresholds))
             df_new = pd.DataFrame(data=np.concatenate((array_lats_lons, y_pred), axis=1))
           # regular dataset format (rf, svm and mlp)
           else:

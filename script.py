@@ -52,7 +52,8 @@
 # - Version 14: 
 # - Added parameter 'normalized': when activated, it will normalized indices values to range -1 and 1 (ndwi, ndvi and sabi)
 # - Added 'class_mode' (regression modelling process) and 'class_weight' (it will assign weights to classes before the training process) parameters
-# - Added parameter 'propagate: when activated, it will propagate predictions from one day to another in prediction date range
+# - Added parameter 'propagate': when activated, it will propagate predictions from one day to another in prediction date range
+# - Added parameter 'gs_train_size': it allows increase the grid search training size
 #####################################################################################################################################
 
 # ### Version
@@ -118,7 +119,9 @@ parser.add_argument('--class_mode', dest='class_mode', action='store_true',
 parser.add_argument('--class_weight', dest='class_weight', action='store_true',
                    help="Defines whether classes will have defined weights for each")
 parser.add_argument('--propagate', dest='propagate', action='store_true',
-                   help="Defines whether predictions will be propagate ahead")         
+                   help="Defines whether predictions will be propagate ahead")
+parser.add_argument('--gs_train_size', dest='gs_train_size', action='store', type=float, default=0.01,
+                   help="It allow increase th grid search dataset training size")          
 parser.add_argument('--save_pairplots', dest='save_pairplots', action='store_true',
                    help="Save pairplots from attributes and indices")
 parser.add_argument('--save_grid', dest='save_grid', action='store_true',
@@ -176,7 +179,7 @@ try:
   # results
   path_df_results = folderRoot+'/results.csv'
   if not os.path.exists(path_df_results):
-    df_results = pd.DataFrame(columns=['model','date','acc','kappa'])
+    df_results = pd.DataFrame(columns=['model','date','acc','bacc','kappa'])
   else:
     df_results = pd.read_csv(path_df_results).drop(['Unnamed: 0'], axis=1)
 
@@ -189,7 +192,7 @@ try:
   shuffle         = True
   
   # folder to save results from algorithm at
-  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',f='+str(args.fill_missing)+',rd='+str(args.remove_dummies)+',n='+str(args.non_normalized)+',c='+str(args.class_mode)+',cw='+str(args.class_weight)+',p='+str(args.propagate)+']'
+  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',f='+str(args.fill_missing)+',rd='+str(args.remove_dummies)+',n='+str(args.non_normalized)+',c='+str(args.class_mode)+',cw='+str(args.class_weight)+',p='+str(args.propagate)+',gs='+str(args.gs_train_size)+']'
   if not os.path.exists(folder):
     os.mkdir(folder)
 
@@ -217,6 +220,7 @@ try:
                       class_mode=args.class_mode,
                       class_weight=args.class_weight,
                       propagate=args.propagate,
+                      gs_train_size=args.gs_train_size,
                       shuffle=shuffle,
                       test_mode=False)
 
@@ -258,12 +262,13 @@ try:
 
 
   # add results do dataframe
-  description = str(args.name)+"-"+str(args.model)+"-"+str(args.from_date)+"-"+str(args.days_threshold)+"-"+str(args.days_in)+'-'+str(args.days_out)+'-'+str(args.reducer)+'-'+str(args.fill_missing)+'-'+str(args.non_normalized)+'-'+str(args.class_mode)+'-'+str(args.class_weight)+'-'+str(args.propagate)
+  description = str(args.name)+"-"+str(args.model)+"-"+str(args.from_date)+"-"+str(args.days_threshold)+"-"+str(args.days_in)+'-'+str(args.days_out)+'-'+str(args.reducer)+'-'+str(args.fill_missing)+'-'+str(args.non_normalized)+'-'+str(args.class_mode)+'-'+str(args.class_weight)+'-'+str(args.propagate)+'-'+str(args.gs_train_size)
   for index, row in algorithm.df_results.iterrows():
     df_results.loc[len(df_results)] = {
       'model':   description+'-'+str(row['type']),
       'date':    row['date_predicted'],
       'acc':     row['acc'],
+      'bacc':   row['bacc'],
       'kappa':   row['kappa'],
     }
 
