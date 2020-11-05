@@ -167,7 +167,9 @@ class Abf:
                class_mode:        bool          = False,
                class_weight:      bool          = False,
                propagate:         bool          = False,
-               gs_train_size:     float         = 0.01,
+               rs_train_size:     float         = 0.01,
+               rs_iter:           int           = 500,
+               pca_size:          float         = .95,
                test_mode:         bool          = False):
     
     # get sensor parameters
@@ -201,7 +203,9 @@ class Abf:
     self.class_mode                 = class_mode
     self.class_weight               = class_weight
     self.propagate                  = propagate
-    self.gs_train_size              = gs_train_size
+    self.rs_train_size              = rs_train_size
+    self.rs_iter                    = rs_iter
+    self.pca_size                   = pca_size
 
     # fix days_in and days_out for LSTM mode
     if self.model is None or self.model == "lstm":
@@ -254,7 +258,7 @@ class Abf:
       self.splitted_geometry            = self.split_geometry()
 
       # warning
-      print("Statistics: scale="+str(self.sensor_params['scale'])+" meters, pixels="+str(self.sample_total_pixel)+", initial_date='"+self.dates_timeseries[0].strftime("%Y-%m-%d")+"', end_date='"+self.dates_timeseries[1].strftime("%Y-%m-%d")+"', interval_images='"+str(self.collection.size().getInfo())+"', interval_unique_images='"+str(len(self.dates_timeseries_interval))+"', water_mask_images='"+str(self.collection_water.size().getInfo())+"', grid_size='"+str(self.grid_size)+"', days_in='"+str(self.days_in)+"', days_out='"+str(self.days_out)+"', morph_op='"+str(self.morph_op)+"', morph_op_iters='"+str(self.morph_op_iters)+"', convolve='"+str(self.convolve)+"', convolve_radius='"+str(self.convolve_radius)+"', scaler='"+str(self.scaler_str)+"', model='"+str(self.model)+"', fill_missing='"+str(self.fill_missing)+"', reducer='"+str(self.reducer)+"', normalized='"+str(self.normalized)+"', class_mode='"+str(self.class_mode)+"', class_weight='"+str(self.class_weight)+"', propagate='"+str(self.propagate)+"', gs_train_size='"+str(self.gs_train_size)+"'")
+      print("Statistics: scale="+str(self.sensor_params['scale'])+" meters, pixels="+str(self.sample_total_pixel)+", initial_date='"+self.dates_timeseries[0].strftime("%Y-%m-%d")+"', end_date='"+self.dates_timeseries[1].strftime("%Y-%m-%d")+"', interval_images='"+str(self.collection.size().getInfo())+"', interval_unique_images='"+str(len(self.dates_timeseries_interval))+"', water_mask_images='"+str(self.collection_water.size().getInfo())+"', grid_size='"+str(self.grid_size)+"', days_in='"+str(self.days_in)+"', days_out='"+str(self.days_out)+"', morph_op='"+str(self.morph_op)+"', morph_op_iters='"+str(self.morph_op_iters)+"', convolve='"+str(self.convolve)+"', convolve_radius='"+str(self.convolve_radius)+"', scaler='"+str(self.scaler_str)+"', model='"+str(self.model)+"', fill_missing='"+str(self.fill_missing)+"', reducer='"+str(self.reducer)+"', normalized='"+str(self.normalized)+"', class_mode='"+str(self.class_mode)+"', class_weight='"+str(self.class_weight)+"', propagate='"+str(self.propagate)+"', rs_train_size='"+str(self.rs_train_size)+"', rs_iter='"+str(self.rs_iter)+"', pca_size='"+str(self.pca_size)+"'")
 
       # gargage collect
       gc.collect()
@@ -477,7 +481,7 @@ class Abf:
 
     # apply reducer
     if mode==1:
-        pca               = decomposition.PCA(.999, random_state=self.random_state)
+        pca               = decomposition.PCA(self.pca_size, random_state=self.random_state)
         X_train           = pca.fit_transform(X_train)
         X_test            = pca.transform(X_test)
         self.reducer      = pca
@@ -1012,7 +1016,7 @@ class Abf:
     # get data
     X_train, y_train                  = self.df_train
     X_test, y_test                    = self.df_test
-    X_gridsearch, _, y_gridsearch, _  = model_selection.train_test_split(X_train, y_train, train_size=self.gs_train_size, random_state=self.random_state)
+    X_gridsearch, _, y_gridsearch, _  = model_selection.train_test_split(X_train, y_train, train_size=self.rs_train_size, random_state=self.random_state)
 
     # compute class weight from gridsearch dataset
     classes = None
@@ -1078,7 +1082,7 @@ class Abf:
 
       # apply RandomizedSearchCV and get best estimator and training the model
       start_time = time.time()
-      rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=mlp_modified, verbose=1), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+      rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=mlp_modified, verbose=1), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       rs.fit(X_gridsearch, y_gridsearch)
       mlp = rs.best_estimator_
 
@@ -1171,7 +1175,7 @@ class Abf:
 
       # apply RandomizedSearchCV and get best estimator and training the model
       start_time = time.time()
-      rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=lstm_modified, verbose=1), param_distributions=random_grid, scoring=metrics.make_scorer(lstm_scorer), n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+      rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=lstm_modified, verbose=1), param_distributions=random_grid, scoring=metrics.make_scorer(lstm_scorer), n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       rs.fit(X_gridsearch, y_gridsearch)
       lstm = rs.best_estimator_
 
@@ -1225,9 +1229,9 @@ class Abf:
       # apply RandomizedSearchCV and get best estimator and training the model
       start_time = time.time()
       if self.class_mode:
-        rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestClassifier(n_jobs=self.n_cores, verbose=1, random_state=self.random_state, class_weight=class_weight), param_distributions=random_grid, scoring='neg_mean_squared_error', n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestClassifier(n_jobs=self.n_cores, verbose=1, random_state=self.random_state, class_weight=class_weight), param_distributions=random_grid, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       else:
-        rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(n_jobs=self.n_cores, verbose=1, random_state=self.random_state), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(n_jobs=self.n_cores, verbose=1, random_state=self.random_state), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       rs.fit(X_gridsearch, y_gridsearch)
       rf = rs.best_estimator_
 
@@ -1267,17 +1271,23 @@ class Abf:
       # RandomizedSearchCV
       random_grid = [
         {
-          'estimator__kernel':    ['rbf','linear'],
+          'estimator__kernel':    ['rbf'],
           'estimator__gamma':     scipy.stats.expon(scale=.100),
           'estimator__C':         scipy.stats.expon(scale=1),
-          'estimator__epsilon':   scipy.stats.expon(scale=.1),
+          #'estimator__epsilon':   scipy.stats.expon(scale=.1),
           'estimator__shrinking': [True, False]
         },
         {
-          'estimator__kernel':    ['rbf','linear'],
+          'estimator__kernel':    ['rbf'],
           'estimator__gamma':     ['auto','scale'],
           'estimator__C':         scipy.stats.expon(scale=1),
-          'estimator__epsilon':   scipy.stats.expon(scale=.1),
+          #'estimator__epsilon':   scipy.stats.expon(scale=.1),
+          'estimator__shrinking': [True, False]
+        },
+        {
+          'estimator__kernel':    ['linear'],
+          'estimator__C':         scipy.stats.expon(scale=1),
+          #'estimator__epsilon':   scipy.stats.expon(scale=.1),
           'estimator__shrinking': [True, False]
         }
       ]
@@ -1285,14 +1295,15 @@ class Abf:
       # apply RandomizedSearchCV and get best estimator
       start_time = time.time()
       if self.class_mode:
-        random_grid_clear = []
-        for g in random_grid:
-          if g['estimator__epsilon']:
-            del g['estimator__epsilon']
-            random_grid_clear.append(g)
-        rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputClassifier(svm.SVC(verbose=0, random_state=self.random_state, class_weight=class_weight2), n_jobs=self.n_cores), param_distributions=random_grid_clear, scoring='neg_mean_squared_error', n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        # random_grid_clear = []
+        # for g in random_grid:
+        #   if g['estimator__epsilon']:
+        #     del g['estimator__epsilon']
+        #     random_grid_clear.append(g)
+        # rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputClassifier(svm.SVC(verbose=0, random_state=self.random_state, class_weight=class_weight2), n_jobs=self.n_cores), param_distributions=random_grid_clear, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputClassifier(svm.SVC(verbose=0, random_state=self.random_state, class_weight=class_weight2), n_jobs=self.n_cores), param_distributions=random_grid, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       else:
-        rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputRegressor(svm.SVR(verbose=0), n_jobs=self.n_cores), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=25, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputRegressor(svm.SVR(verbose=0), n_jobs=self.n_cores), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       rs.fit(X_gridsearch, y_gridsearch)
       svm_model = rs.best_estimator_
       
