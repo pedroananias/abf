@@ -78,27 +78,11 @@ class Abf:
   # supports
   dates_timeseries            = [None, None]
   dates_timeseries_interval   = []
-  scaler                      = None
   scaler_str                  = None
   sensor_params               = None
-  days_threshold              = None
-  grid_size                   = None
-  force_cache                 = None
-  morph_op                    = None
-  morph_op_iters              = None
-  convolve                    = None
-  convolve_radius             = None
   resolution                  = [0,0]
   limits                      = [0,0]
-  days_in                     = None
-  days_out                    = None
   pixels_lat_lons             = None
-  model                       = None
-  fill_missing                = None
-  shuffle                     = None
-  remove_dummies              = None
-  reducer                     = None
-  scale                       = None
 
   # masks
   water_mask                  = None
@@ -1275,21 +1259,21 @@ class Abf:
           'estimator__kernel':    ['rbf'],
           'estimator__gamma':     scipy.stats.expon(scale=.100),
           'estimator__C':         scipy.stats.expon(scale=1),
-          'estimator__epsilon':   0.1,
+          'estimator__epsilon':   [0.1],
           'estimator__shrinking': [True, False]
         },
         {
           'estimator__kernel':    ['rbf'],
           'estimator__gamma':     ['auto','scale'],
           'estimator__C':         scipy.stats.expon(scale=1),
-          'estimator__epsilon':   0.1,
+          'estimator__epsilon':   [0.1],
           'estimator__shrinking': [True, False]
         },
         {
           'estimator__kernel':    ['linear'],
           'estimator__gamma':     ['scale'],
           'estimator__C':         scipy.stats.expon(scale=1),
-          'estimator__epsilon':   0.1,
+          'estimator__epsilon':   [0.1],
           'estimator__shrinking': [True, False]
         }
       ]
