@@ -119,8 +119,7 @@ class Abf:
   # dataframes
   df_columns                  = ['pixel','index','row','column','date','doy','lat','lon']+attributes
   df_columns_clear            = ['pixel','index','row','column','date','doy','lat','lon']+attributes_clear
-  df_columns_results          = ['model', 'type', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'tp', 'tn', 'fp', 'fn']
-  df_columns_pretraining      = ['model', 'name', 'dropout', 'dense_size', 'epoch', 'activation_function', 'lstm_size', 'max_depth', 'estimator', 'max_features', 'C', 'gamma', 'acc', 'f1score', 'rmse', 'mae', 'runtime']
+  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'tp', 'tn', 'fp', 'fn']
   df_timeseries               = None
   df_timeseries_scene         = None
   df_timeseries_grid          = None
@@ -147,6 +146,7 @@ class Abf:
                grid_size:         int           = 3,
                sensor:            str           = "modis",
                scale:             int           = None,
+               path:              str           = None,
                cache_path:        str           = None, 
                lat_lon:           str           = None,
                force_cache:       bool          = False,
@@ -169,7 +169,7 @@ class Abf:
                propagate:         bool          = False,
                rs_train_size:     float         = 0.01,
                rs_iter:           int           = 500,
-               pca_size:          float         = .95,
+               pca_size:          float         = .999,
                test_mode:         bool          = False):
     
     # get sensor parameters
@@ -183,6 +183,7 @@ class Abf:
     # user defined parameters
     self.geometry                   = geometry
     self.days_threshold             = days_threshold
+    self.path                       = path
     self.cache_path                 = cache_path
     self.lat_lon                    = lat_lon
     self.sensor                     = sensor
@@ -1795,10 +1796,14 @@ class Abf:
             dict_results.append({
               'model':            str(model),
               'type':             plot_type,
+              'sensor':           str(self.sensor),
+              'path':             str(self.path),
               'date_predicted':   date.strftime("%Y-%m-%d"),
               'date_execution':   dt.now().strftime("%Y-%m-%d"),
               'time_execution':   dt.now().strftime("%H:%M:%S"),
               'runtime':          str(self.classifiers_runtime[model]),
+              'days_threshold':   str(self.days_threshold), 
+              'grid_size':        str(self.grid_size),
               'size_train':       str(self.df_train[0].shape),
               'size_dates':       str(len(self.dates_timeseries_interval)),
               'scaler':           str(self.scaler_str),
@@ -1806,6 +1811,19 @@ class Abf:
               'morph_op_iters':   str(self.morph_op_iters),
               'convolve':         str(self.convolve),
               'convolve_radius':  str(self.convolve_radius),
+              'days_in':          str(self.days_in), 
+              'days_out':         str(self.days_out), 
+              'fill_missing':     str(self.fill_missing), 
+              'remove_dummies':   str(self.remove_dummies), 
+              'shuffle':          str(self.shuffle), 
+              'reducer':          str(self.reducer), 
+              'normalized':       str(self.normalized), 
+              'class_mode':       str(self.class_mode), 
+              'class_weight':     str(self.class_weight), 
+              'propagate':        str(self.propagate), 
+              'rs_train_size':    str(self.rs_train_size), 
+              'rs_iter':          str(self.rs_iter), 
+              'pca_size':         str(self.pca_size),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),
@@ -1905,10 +1923,14 @@ class Abf:
             dict_results.append({
               'model':            str(model),
               'type':             plot_type,
+              'sensor':           str(self.sensor),
+              'path':             str(self.path),
               'date_predicted':   date.strftime("%Y-%m-%d"),
               'date_execution':   dt.now().strftime("%Y-%m-%d"),
               'time_execution':   dt.now().strftime("%H:%M:%S"),
               'runtime':          str(self.classifiers_runtime[model]),
+              'days_threshold':   str(self.days_threshold), 
+              'grid_size':        str(self.grid_size),
               'size_train':       str(self.df_train[0].shape),
               'size_dates':       str(len(self.dates_timeseries_interval)),
               'scaler':           str(self.scaler_str),
@@ -1916,6 +1938,19 @@ class Abf:
               'morph_op_iters':   str(self.morph_op_iters),
               'convolve':         str(self.convolve),
               'convolve_radius':  str(self.convolve_radius),
+              'days_in':          str(self.days_in), 
+              'days_out':         str(self.days_out), 
+              'fill_missing':     str(self.fill_missing), 
+              'remove_dummies':   str(self.remove_dummies), 
+              'shuffle':          str(self.shuffle), 
+              'reducer':          str(self.reducer), 
+              'normalized':       str(self.normalized), 
+              'class_mode':       str(self.class_mode), 
+              'class_weight':     str(self.class_weight), 
+              'propagate':        str(self.propagate), 
+              'rs_train_size':    str(self.rs_train_size), 
+              'rs_iter':          str(self.rs_iter), 
+              'pca_size':         str(self.pca_size),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),
@@ -2001,10 +2036,14 @@ class Abf:
             dict_results.append({
               'model':            str(model),
               'type':             plot_type,
+              'sensor':           str(self.sensor),
+              'path':             str(self.path),
               'date_predicted':   date.strftime("%Y-%m-%d"),
               'date_execution':   dt.now().strftime("%Y-%m-%d"),
               'time_execution':   dt.now().strftime("%H:%M:%S"),
               'runtime':          str(self.classifiers_runtime[model]),
+              'days_threshold':   str(self.days_threshold), 
+              'grid_size':        str(self.grid_size),
               'size_train':       str(self.df_train[0].shape),
               'size_dates':       str(len(self.dates_timeseries_interval)),
               'scaler':           str(self.scaler_str),
@@ -2012,6 +2051,19 @@ class Abf:
               'morph_op_iters':   str(self.morph_op_iters),
               'convolve':         str(self.convolve),
               'convolve_radius':  str(self.convolve_radius),
+              'days_in':          str(self.days_in), 
+              'days_out':         str(self.days_out), 
+              'fill_missing':     str(self.fill_missing), 
+              'remove_dummies':   str(self.remove_dummies), 
+              'shuffle':          str(self.shuffle), 
+              'reducer':          str(self.reducer), 
+              'normalized':       str(self.normalized), 
+              'class_mode':       str(self.class_mode), 
+              'class_weight':     str(self.class_weight), 
+              'propagate':        str(self.propagate), 
+              'rs_train_size':    str(self.rs_train_size), 
+              'rs_iter':          str(self.rs_iter), 
+              'pca_size':         str(self.pca_size),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),

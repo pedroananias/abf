@@ -125,7 +125,7 @@ parser.add_argument('--rs_train_size', dest='rs_train_size', action='store', typ
                    help="It allow increase th randomized search dataset training size")
 parser.add_argument('--rs_iter', dest='rs_iter', action='store', type=int, default=500,
                    help="It allow increase th randomized search iteration size")
-parser.add_argument('--pca_size', dest='pca_size', action='store', type=float, default=0.95,
+parser.add_argument('--pca_size', dest='pca_size', action='store', type=float, default=0.999,
                    help="Define PCA reducer variance size")
 parser.add_argument('--save_pairplots', dest='save_pairplots', action='store_true',
                    help="Save pairplots from attributes and indices")
@@ -181,23 +181,8 @@ try:
   
   # ### ABF execution
 
-  # results
-  path_df_results = folderRoot+'/results.csv'
-  if not os.path.exists(path_df_results):
-    df_results = pd.DataFrame(columns=['model','date','acc','bacc','kappa'])
-  else:
-    df_results = pd.read_csv(path_df_results).drop(['Unnamed: 0'], axis=1)
-
-  # default configuration
-  batch_size      = 2048
-  morph_op        = None
-  morph_op_iters  = 1
-  convolve        = False
-  convolve_radius = 1
-  shuffle         = True
-  
   # folder to save results from algorithm at
-  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',f='+str(args.fill_missing)+',rd='+str(args.remove_dummies)+',n='+str(args.non_normalized)+',c='+str(args.class_mode)+',cw='+str(args.class_weight)+',p='+str(args.propagate)+',rs='+str(args.rs_train_size)+'-'+str(args.rs_iter)+',pca='+str(args.pca_size)+']'
+  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',n='+str(args.non_normalized)+',c='+str(args.class_mode)+',cw='+str(args.class_weight)+',rs='+str(args.rs_train_size)+'-'+str(args.rs_iter)+',pca='+str(args.pca_size)+']'
   if not os.path.exists(folder):
     os.mkdir(folder)
 
@@ -207,12 +192,13 @@ try:
                       sensor="modis", 
                       geometry=geometry,
                       lat_lon=args.lat_lon,
+                      path=folder,
                       cache_path=folderCache,
                       force_cache=False,
-                      morph_op=morph_op, 
-                      morph_op_iters=morph_op_iters,
-                      convolve=convolve,
-                      convolve_radius=convolve_radius,
+                      morph_op=None, 
+                      morph_op_iters=1,
+                      convolve=False,
+                      convolve_radius=1,
                       scaler='robust',
                       days_in=args.days_in,
                       days_out=args.days_out,
@@ -228,7 +214,7 @@ try:
                       rs_train_size=args.rs_train_size,
                       rs_iter=args.rs_iter,
                       pca_size=args.pca_size,
-                      shuffle=shuffle,
+                      shuffle=True,
                       test_mode=False)
 
   # preprocessing
@@ -248,7 +234,7 @@ try:
     
   # train/predict
   else:
-    algorithm.train(batch_size=batch_size, disable_gpu=True)
+    algorithm.train(batch_size=2048, disable_gpu=True)
     algorithm.predict(folder=folder+"/prediction")
 
     # prediction results
@@ -267,20 +253,11 @@ try:
       algorithm.save_dataset(df=pd.DataFrame(algorithm.df_test[0]), path=folder+'/df_test_X.csv')
       algorithm.save_dataset(df=pd.DataFrame(algorithm.df_test[1]), path=folder+'/df_test_y.csv')
 
-
-  # add results do dataframe
-  description = str(args.name)+"-"+str(args.model)+"-"+str(args.from_date)+"-"+str(args.days_threshold)+"-"+str(args.days_in)+'-'+str(args.days_out)+'-'+str(args.reducer)+'-'+str(args.fill_missing)+'-'+str(args.non_normalized)+'-'+str(args.class_mode)+'-'+str(args.class_weight)+'-'+str(args.propagate)+'-'+str(args.rs_train_size)+'-'+str(args.rs_iter)+'-'+str(args.pca_size)
-  for index, row in algorithm.df_results.iterrows():
-    df_results.loc[len(df_results)] = {
-      'model':   description+'-'+str(row['type']),
-      'date':    row['date_predicted'],
-      'acc':     row['acc'],
-      'bacc':   row['bacc'],
-      'kappa':   row['kappa'],
-    }
-
-  # save results
-  df_results.drop_duplicates(subset=['model','date'], keep='last').sort_values(by=['acc','kappa'], ascending=False).to_csv(r''+path_df_results)
+  # results
+  # add results and save it on disk
+  path_df_results = folderRoot+'/results.csv'
+  df_results = pd.read_csv(path_df_results).drop(['Unnamed: 0'], axis=1, errors="ignore").append(algorithm.df_results) if os.path.exists(path_df_results) else algorithm.df_results.copy(deep=True)
+  df_results.to_csv(r''+path_df_results)
 
   # clear memory
   del algorithm

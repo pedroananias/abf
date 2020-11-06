@@ -19,17 +19,17 @@ CLEAR="sudo pkill -f /home/pedro/anaconda3"
 # declare -a GS_TRAIN_SIZES=("--gs_train_size=0.01" "--gs_train_size=0.025" "--gs_train_size=0.05")
 
 # ARRAYS - FILTERED
-declare -a DAYS_THRESHOLD=("90" "180")
+declare -a DAYS_THRESHOLD=("90" "180" "365")
 declare -a MODELS=("svm")
 declare -a FILLS_MISSING=("time")
 declare -a REDUCER=("--reducer")
 declare -a CLASS_MODE=("--class_mode")
 declare -a PROPAGATE=("")
 declare -a NORMALIZE=("")
-declare -a DAYS_IN_OUT=("--days_in=5 --days_out=5")
+declare -a DAYS_IN_OUT=("--days_in=3 --days_out=3" "--days_in=3 --days_out=5" "--days_in=5 --days_out=5" "--days_in=5 --days_out=3")
 declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01")
 declare -a RS_ITERS=("--rs_iter=25" "--rs_iter=500")
-declare -a PCA_SIZES=("--pca_size=0.99" "--pca_size=0.95" "--pca_size=0.90")
+declare -a PCA_SIZES=("--pca_size=0.999" "--pca_size=0.950" "--pca_size=0.900")
 
 # SHOW BASE DIR
 echo "$PYTHON $BASEDIR/$SCRIPT"
@@ -45,13 +45,13 @@ FROM_DATE="2019-07-11"
 # EXECUTIONS
 for rs_train_size in "${RS_TRAIN_SIZES[@]}"
 do
-	for rs_iter in "${RS_ITERS[@]}"
+	for model in "${MODELS[@]}"
 	do
-		for pca_size in "${PCA_SIZES[@]}"
+		for rs_iter in "${RS_ITERS[@]}"
 		do
-			for day_threshold in "${DAYS_THRESHOLD[@]}"
+			for pca_size in "${PCA_SIZES[@]}"
 			do
-				for model in "${MODELS[@]}"
+				for day_threshold in "${DAYS_THRESHOLD[@]}"
 				do
 					for days_in_out in "${DAYS_IN_OUT[@]}"
 					do
