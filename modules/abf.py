@@ -1274,20 +1274,21 @@ class Abf:
           'estimator__kernel':    ['rbf'],
           'estimator__gamma':     scipy.stats.expon(scale=.100),
           'estimator__C':         scipy.stats.expon(scale=1),
-          #'estimator__epsilon':   scipy.stats.expon(scale=.1),
+          'estimator__epsilon':   0.1,
           'estimator__shrinking': [True, False]
         },
         {
           'estimator__kernel':    ['rbf'],
           'estimator__gamma':     ['auto','scale'],
           'estimator__C':         scipy.stats.expon(scale=1),
-          #'estimator__epsilon':   scipy.stats.expon(scale=.1),
+          'estimator__epsilon':   0.1,
           'estimator__shrinking': [True, False]
         },
         {
           'estimator__kernel':    ['linear'],
+          'estimator__gamma':     ['scale'],
           'estimator__C':         scipy.stats.expon(scale=1),
-          #'estimator__epsilon':   scipy.stats.expon(scale=.1),
+          'estimator__epsilon':   0.1,
           'estimator__shrinking': [True, False]
         }
       ]
@@ -1295,13 +1296,13 @@ class Abf:
       # apply RandomizedSearchCV and get best estimator
       start_time = time.time()
       if self.class_mode:
-        # random_grid_clear = []
-        # for g in random_grid:
-        #   if g['estimator__epsilon']:
-        #     del g['estimator__epsilon']
-        #     random_grid_clear.append(g)
-        # rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputClassifier(svm.SVC(verbose=0, random_state=self.random_state, class_weight=class_weight2), n_jobs=self.n_cores), param_distributions=random_grid_clear, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-        rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputClassifier(svm.SVC(verbose=0, random_state=self.random_state, class_weight=class_weight2), n_jobs=self.n_cores), param_distributions=random_grid, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        random_grid_clear = []
+        for g in random_grid:
+          if g['estimator__epsilon']:
+            del g['estimator__epsilon']
+            random_grid_clear.append(g)
+        rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputClassifier(svm.SVC(verbose=0, random_state=self.random_state, class_weight=class_weight2), n_jobs=self.n_cores), param_distributions=random_grid_clear, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        #rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputClassifier(svm.SVC(verbose=0, random_state=self.random_state, class_weight=class_weight2), n_jobs=self.n_cores), param_distributions=random_grid, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       else:
         rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputRegressor(svm.SVR(verbose=0), n_jobs=self.n_cores), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       rs.fit(X_gridsearch, y_gridsearch)
