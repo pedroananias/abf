@@ -55,10 +55,13 @@
 # - Added parameter 'propagate': when activated, it will propagate predictions from one day to another in prediction date range
 # - Added parameter 'rs_train_size', 'rs_iter': it allows increase the randomized search training size and iterations
 # - Added parameter 'pca_size'
+#
+# - Version 15: 
+# - Changed accuracy calculation process (removed indetermined bloom pixels)
 #####################################################################################################################################
 
 # ### Version
-version = "V14"
+version = "V15"
 
 
 
@@ -97,9 +100,9 @@ parser.add_argument('--from_date', dest='from_date', action='store', default="20
                    help="Date to end time series (it will forecast 5 days starting from this date)")
 parser.add_argument('--name', dest='name', action='store', default="erie",
                    help="Place where to save generated files")
-parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=365,
+parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=1825,
                    help="Days threshold used to build the timeseries and training set")
-parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=5,
+parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=3,
                    help="Day threshold to be used as input forecast")
 parser.add_argument('--days_out', dest='days_out', action='store', type=int, default=5,
                    help="Day threshold to be used as output forecast")
@@ -125,8 +128,10 @@ parser.add_argument('--rs_train_size', dest='rs_train_size', action='store', typ
                    help="It allow increase th randomized search dataset training size")
 parser.add_argument('--rs_iter', dest='rs_iter', action='store', type=int, default=500,
                    help="It allow increase th randomized search iteration size")
-parser.add_argument('--pca_size', dest='pca_size', action='store', type=float, default=0.999,
+parser.add_argument('--pca_size', dest='pca_size', action='store', type=float, default=0.900,
                    help="Define PCA reducer variance size")
+parser.add_argument('--non_indetermined', dest='non_indetermined', action='store_true',
+                   help="Define if indetermined pixels will not be used in accuracy calculation process")
 parser.add_argument('--save_pairplots', dest='save_pairplots', action='store_true',
                    help="Save pairplots from attributes and indices")
 parser.add_argument('--save_grid', dest='save_grid', action='store_true',
@@ -182,7 +187,7 @@ try:
   # ### ABF execution
 
   # folder to save results from algorithm at
-  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',n='+str(args.non_normalized)+',c='+str(args.class_mode)+',cw='+str(args.class_weight)+',rs='+str(args.rs_train_size)+'-'+str(args.rs_iter)+',pca='+str(args.pca_size)+']'
+  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',n='+str(args.non_normalized)+',c='+str(args.class_mode)+',cw='+str(args.class_weight)+',rs='+str(args.rs_train_size)+'-'+str(args.rs_iter)+',pca='+str(args.pca_size)+',i='+str(args.non_indetermined)+']'
   if not os.path.exists(folder):
     os.mkdir(folder)
 
@@ -199,7 +204,7 @@ try:
                       morph_op_iters=1,
                       convolve=False,
                       convolve_radius=1,
-                      scaler='robust',
+                      scaler='standard',
                       days_in=args.days_in,
                       days_out=args.days_out,
                       from_date=args.from_date,
@@ -214,6 +219,7 @@ try:
                       rs_train_size=args.rs_train_size,
                       rs_iter=args.rs_iter,
                       pca_size=args.pca_size,
+                      non_indetermined=args.non_indetermined,
                       shuffle=True,
                       test_mode=False)
 

@@ -19,17 +19,18 @@ CLEAR="sudo pkill -f /home/pedro/anaconda3"
 # declare -a GS_TRAIN_SIZES=("--gs_train_size=0.01" "--gs_train_size=0.025" "--gs_train_size=0.05")
 
 # ARRAYS - FILTERED
-declare -a DAYS_THRESHOLD=("90" "180" "365")
-declare -a MODELS=("svm")
+declare -a DAYS_THRESHOLD=("730" "1825")
+declare -a MODELS=("rf" "svm" "lstm" "mlp")
 declare -a FILLS_MISSING=("time")
 declare -a REDUCER=("--reducer")
 declare -a CLASS_MODE=("--class_mode")
 declare -a PROPAGATE=("")
 declare -a NORMALIZE=("")
-declare -a DAYS_IN_OUT=("--days_in=3 --days_out=3" "--days_in=3 --days_out=5" "--days_in=5 --days_out=5" "--days_in=5 --days_out=3")
-declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01")
-declare -a RS_ITERS=("--rs_iter=25" "--rs_iter=500")
-declare -a PCA_SIZES=("--pca_size=0.999" "--pca_size=0.950" "--pca_size=0.900")
+declare -a DAYS_IN_OUT=("--days_in=1 --days_out=5" "--days_in=3 --days_out=5" "--days_in=5 --days_out=5")
+declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01" "--rs_train_size=0.025")
+declare -a RS_ITERS=("--rs_iter=500")
+declare -a PCA_SIZES=("--pca_size=0.900")
+declare -a INDETERMINED=("" "--non_indetermined")
 
 # SHOW BASE DIR
 echo "$PYTHON $BASEDIR/$SCRIPT"
@@ -47,25 +48,28 @@ for rs_train_size in "${RS_TRAIN_SIZES[@]}"
 do
 	for model in "${MODELS[@]}"
 	do
-		for rs_iter in "${RS_ITERS[@]}"
+		for indetermined in "${INDETERMINED[@]}"
 		do
-			for pca_size in "${PCA_SIZES[@]}"
+			for rs_iter in "${RS_ITERS[@]}"
 			do
-				for day_threshold in "${DAYS_THRESHOLD[@]}"
+				for pca_size in "${PCA_SIZES[@]}"
 				do
-					for days_in_out in "${DAYS_IN_OUT[@]}"
+					for day_threshold in "${DAYS_THRESHOLD[@]}"
 					do
-						for class_mode in "${CLASS_MODE[@]}"
+						for days_in_out in "${DAYS_IN_OUT[@]}"
 						do
-							for fill_missing in "${FILLS_MISSING[@]}"
+							for class_mode in "${CLASS_MODE[@]}"
 							do
-								for propagate in "${PROPAGATE[@]}"
+								for fill_missing in "${FILLS_MISSING[@]}"
 								do
-									for normalized in "${NORMALIZE[@]}"
+									for propagate in "${PROPAGATE[@]}"
 									do
-										for reducer in "${REDUCER[@]}"
+										for normalized in "${NORMALIZE[@]}"
 										do
-											eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE $days_in_out --model=$model --days_threshold=$day_threshold --fill_missing=$fill_missing $reducer $class_mode $propagate $normalized $rs_train_size $rs_iter $pca_size"
+											for reducer in "${REDUCER[@]}"
+											do
+												eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE $days_in_out --model=$model --days_threshold=$day_threshold --fill_missing=$fill_missing $reducer $class_mode $propagate $normalized $rs_train_size $rs_iter $pca_size $indetermined"
+											done
 										done
 									done
 								done

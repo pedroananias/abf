@@ -131,7 +131,7 @@ class Abf:
                sensor:            str           = "modis",
                scale:             int           = None,
                path:              str           = None,
-               cache_path:        str           = None, 
+               cache_path:        str           = None,
                lat_lon:           str           = None,
                force_cache:       bool          = False,
                morph_op:          str           = None,
@@ -139,21 +139,22 @@ class Abf:
                convolve:          bool          = False,
                convolve_radius:   int           = 1,
                scaler:            str           = 'robust',
-               days_in:           int           = 5,
+               days_in:           int           = 3,
                days_out:          int           = 5,
                from_date:         str           = None,
                model:             str           = None,
                fill_missing:      str           = "time",
                remove_dummies:    bool          = False,
                shuffle:           bool          = True,
-               reducer:           bool          = False,
+               reducer:           bool          = True,
                normalized:        bool          = True,
-               class_mode:        bool          = False,
+               class_mode:        bool          = True,
                class_weight:      bool          = False,
                propagate:         bool          = False,
                rs_train_size:     float         = 0.01,
                rs_iter:           int           = 500,
-               pca_size:          float         = .999,
+               pca_size:          float         = .900,
+               non_indetermined:  bool          = False,
                test_mode:         bool          = False):
     
     # get sensor parameters
@@ -191,6 +192,7 @@ class Abf:
     self.rs_train_size              = rs_train_size
     self.rs_iter                    = rs_iter
     self.pca_size                   = pca_size
+    self.non_indetermined           = non_indetermined
 
     # fix days_in and days_out for LSTM mode
     if self.model is None or self.model == "lstm":
@@ -243,7 +245,7 @@ class Abf:
       self.splitted_geometry            = self.split_geometry()
 
       # warning
-      print("Statistics: scale="+str(self.sensor_params['scale'])+" meters, pixels="+str(self.sample_total_pixel)+", initial_date='"+self.dates_timeseries[0].strftime("%Y-%m-%d")+"', end_date='"+self.dates_timeseries[1].strftime("%Y-%m-%d")+"', interval_images='"+str(self.collection.size().getInfo())+"', interval_unique_images='"+str(len(self.dates_timeseries_interval))+"', water_mask_images='"+str(self.collection_water.size().getInfo())+"', grid_size='"+str(self.grid_size)+"', days_in='"+str(self.days_in)+"', days_out='"+str(self.days_out)+"', morph_op='"+str(self.morph_op)+"', morph_op_iters='"+str(self.morph_op_iters)+"', convolve='"+str(self.convolve)+"', convolve_radius='"+str(self.convolve_radius)+"', scaler='"+str(self.scaler_str)+"', model='"+str(self.model)+"', fill_missing='"+str(self.fill_missing)+"', reducer='"+str(self.reducer)+"', normalized='"+str(self.normalized)+"', class_mode='"+str(self.class_mode)+"', class_weight='"+str(self.class_weight)+"', propagate='"+str(self.propagate)+"', rs_train_size='"+str(self.rs_train_size)+"', rs_iter='"+str(self.rs_iter)+"', pca_size='"+str(self.pca_size)+"'")
+      print("Statistics: scale="+str(self.sensor_params['scale'])+" meters, pixels="+str(self.sample_total_pixel)+", initial_date='"+self.dates_timeseries[0].strftime("%Y-%m-%d")+"', end_date='"+self.dates_timeseries[1].strftime("%Y-%m-%d")+"', interval_images='"+str(self.collection.size().getInfo())+"', interval_unique_images='"+str(len(self.dates_timeseries_interval))+"', water_mask_images='"+str(self.collection_water.size().getInfo())+"', grid_size='"+str(self.grid_size)+"', days_in='"+str(self.days_in)+"', days_out='"+str(self.days_out)+"', morph_op='"+str(self.morph_op)+"', morph_op_iters='"+str(self.morph_op_iters)+"', convolve='"+str(self.convolve)+"', convolve_radius='"+str(self.convolve_radius)+"', scaler='"+str(self.scaler_str)+"', model='"+str(self.model)+"', fill_missing='"+str(self.fill_missing)+"', reducer='"+str(self.reducer)+"', normalized='"+str(self.normalized)+"', class_mode='"+str(self.class_mode)+"', class_weight='"+str(self.class_weight)+"', propagate='"+str(self.propagate)+"', rs_train_size='"+str(self.rs_train_size)+"', rs_iter='"+str(self.rs_iter)+"', pca_size='"+str(self.pca_size)+"', non_indetermined='"+str(self.non_indetermined)+"'")
 
       # gargage collect
       gc.collect()
@@ -1287,7 +1289,6 @@ class Abf:
             del g['estimator__epsilon']
             random_grid_clear.append(g)
         rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputClassifier(svm.SVC(verbose=0, random_state=self.random_state, class_weight=class_weight2), n_jobs=self.n_cores), param_distributions=random_grid_clear, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-        #rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputClassifier(svm.SVC(verbose=0, random_state=self.random_state, class_weight=class_weight2), n_jobs=self.n_cores), param_distributions=random_grid, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       else:
         rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputRegressor(svm.SVR(verbose=0), n_jobs=self.n_cores), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
       rs.fit(X_gridsearch, y_gridsearch)
@@ -1453,13 +1454,7 @@ class Abf:
     color_map2[81:]             = "darkred"
 
     # encoder colors
-    #color_encoder               = preprocessing.LabelEncoder()
-    #color_encoder.fit(["black","blue","cyan","yellow","red"])
     color_encoder               = {"green":0,"yellow":1,"orange":2,"red":3,"darkred":4}
-
-    # encoder colors
-    #color_encoder2              = preprocessing.LabelEncoder()
-    #color_encoder2.fit(["green","yellow","orange","red","darkred"])
 
     # legends
     legends_colors = [Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='black',fill=True),
@@ -1769,8 +1764,12 @@ class Abf:
 
             # labels arrays
             if count_pixels > 0:
-              y_pred   = df_merge['label_predicted'].values.reshape((-1, 1))
-              y_true   = df_merge['label'].values.reshape((-1, 1))
+              if self.non_indetermined:
+                y_pred   = df_merge[df_merge['label']!=2.0]['label_predicted'].values.reshape((-1, 1))
+                y_true   = df_merge[df_merge['label']!=2.0]['label'].values.reshape((-1, 1))
+              else:
+                y_pred   = df_merge['label_predicted'].values.reshape((-1, 1))
+                y_true   = df_merge['label'].values.reshape((-1, 1))
 
             # report
             measures = misc.concordance_measures(metrics.confusion_matrix(y_true, y_pred), y_true, y_pred)
