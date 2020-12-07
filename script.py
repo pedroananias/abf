@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 #####################################################################################################################################
-# ### ABF - Anomaly and Algal Bloom Forecast
-# ### Script responsible for executing the anomaly and algal bloom forecast using machine learning and deep learning
+# ### ABF - Anomalous Behaviour Forecast
+# ### Script responsible for executing the anomalous behaviour forecast using machine learning and deep learning
 # ### Python 3.7 64Bits is required!
 #
 # ### Change History

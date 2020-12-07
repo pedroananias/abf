@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 #########################################################################################################################################
-# ### ABF - Anomaly and Algal Bloom Forecast
-# ### Module responsable for anomaly and algal bloom forecast algorithm application
+# ### ABF - Anomalous Behaviour Forecast
+# ### Module responsable for anomalous behaviour forecast algorithm application
 #########################################################################################################################################
 
 # Dependencies
@@ -57,7 +57,7 @@ from modules import misc, gee
 pd.plotting.register_matplotlib_converters()
 warnings.filterwarnings("ignore")
 
-# Anomaly and Algal Bloom Forecast
+# Anomalous Behaviour Forecast
 class Abf:
 
   # configuration
@@ -300,19 +300,22 @@ class Abf:
 
   # extract image from collection
   def extract_image_from_collection(self, date, convolve: bool = False, convolve_radius: int = 1, apply_attributes: bool = True, convolve_force_disabled: bool = False):
-    collection = self.collection.filter(ee.Filter.date(date.strftime("%Y-%m-%d"), (date + td(days=1)).strftime("%Y-%m-%d")))
-    if int(collection.size().getInfo()) == 0:
-      collection = self.collection.filter(ee.Filter.date(date.strftime("%Y-%m-%d"), (date + td(days=2)).strftime("%Y-%m-%d")))
+    try:
+      collection = self.collection.filter(ee.Filter.date(date.strftime("%Y-%m-%d"), (date + td(days=1)).strftime("%Y-%m-%d")))
       if int(collection.size().getInfo()) == 0:
-        return None
-    if apply_attributes:
-      image = self.apply_attributes(collection.max(), date)
-    else:
-      image = collection.max()
-    if (convolve or self.convolve) and convolve_force_disabled == False:
-      convolve_radius = convolve_radius if self.convolve_radius is None or self.convolve_radius == 0 else self.convolve_radius
-      image = image.convolve(ee.Kernel.square(radius=convolve_radius, units='pixels', normalize=True))
-    return self.apply_water_mask(image, False, apply_attributes=apply_attributes)
+        collection = self.collection.filter(ee.Filter.date(date.strftime("%Y-%m-%d"), (date + td(days=2)).strftime("%Y-%m-%d")))
+        if int(collection.size().getInfo()) == 0:
+          return None
+      if apply_attributes:
+        image = self.apply_attributes(collection.max(), date)
+      else:
+        image = collection.max()
+      if (convolve or self.convolve) and convolve_force_disabled == False:
+        convolve_radius = convolve_radius if self.convolve_radius is None or self.convolve_radius == 0 else self.convolve_radius
+        image = image.convolve(ee.Kernel.square(radius=convolve_radius, units='pixels', normalize=True))
+      return self.apply_water_mask(image, False, apply_attributes=apply_attributes)
+    except:
+      return None
 
 
   # split images into tiles
@@ -826,10 +829,13 @@ class Abf:
 
         # extract pixels from image
         # check if is good image (with pixels)
-        df_timeseries_ = self.extract_image_pixels(image=self.extract_image_from_collection(date=date), date=date)
-        if df_timeseries_.size > 0:
-          df_timeseries = self.merge_timeseries(df_list=[df_timeseries, df_timeseries_])
-        gc.collect()
+        try:
+          df_timeseries_ = self.extract_image_pixels(image=self.extract_image_from_collection(date=date), date=date)
+          if df_timeseries_.size > 0:
+            df_timeseries = self.merge_timeseries(df_list=[df_timeseries, df_timeseries_])
+          gc.collect()
+        except:
+          pass
 
       # get only good dates
       # fix dataframe index
@@ -1581,11 +1587,11 @@ class Abf:
 
         # Title
         if plot_type == "pixel":
-          plt.title("Anomaly and algal bloom pixel-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
+          plt.title("Anomalous Behaviour pixel-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
         elif plot_type == "grid":
-          plt.title("Anomaly and algal bloom grid-wise ("+str(self.grid_size)+"x"+str(self.grid_size)+") forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
+          plt.title("Anomalous Behaviour bloom grid-wise ("+str(self.grid_size)+"x"+str(self.grid_size)+") forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
         elif plot_type == "scene":
-          plt.title("Anomaly and algal bloom scene-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
+          plt.title("Anomalous Behaviour bloom scene-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
 
         # go through all dates to get rgb images
         for date in self.predict_dates:
