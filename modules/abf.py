@@ -103,7 +103,7 @@ class Abf:
   # dataframes
   df_columns                  = ['pixel','index','row','column','date','doy','lat','lon']+attributes
   df_columns_clear            = ['pixel','index','row','column','date','doy','lat','lon']+attributes_clear
-  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'tp', 'tn', 'fp', 'fn']
+  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'non_indetermined', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'tp', 'tn', 'fp', 'fn']
   df_timeseries               = None
   df_timeseries_scene         = None
   df_timeseries_grid          = None
@@ -139,7 +139,7 @@ class Abf:
                convolve:          bool          = False,
                convolve_radius:   int           = 1,
                scaler:            str           = 'robust',
-               days_in:           int           = 3,
+               days_in:           int           = 1,
                days_out:          int           = 5,
                from_date:         str           = None,
                model:             str           = None,
@@ -153,8 +153,8 @@ class Abf:
                propagate:         bool          = False,
                rs_train_size:     float         = 0.01,
                rs_iter:           int           = 500,
-               pca_size:          float         = .900,
-               non_indetermined:  bool          = False,
+               pca_size:          float         = 0.900,
+               non_indetermined:  bool          = True,
                test_mode:         bool          = False):
     
     # get sensor parameters
@@ -319,7 +319,8 @@ class Abf:
   def split_geometry(self):
 
     # check total of pixels
-    if self.sample_total_pixel > self.max_tile_pixels:
+    total = self.sample_total_pixel*(len(self.attributes)+2)
+    if total > self.max_tile_pixels:
 
       # total of tiles needed
       tiles = math.ceil(self.sample_total_pixel/self.max_tile_pixels)
@@ -1807,6 +1808,7 @@ class Abf:
               'rs_train_size':    str(self.rs_train_size), 
               'rs_iter':          str(self.rs_iter), 
               'pca_size':         str(self.pca_size),
+              'non_indetermined': str(self.non_indetermined),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),
@@ -1934,6 +1936,7 @@ class Abf:
               'rs_train_size':    str(self.rs_train_size), 
               'rs_iter':          str(self.rs_iter), 
               'pca_size':         str(self.pca_size),
+              'non_indetermined': str(self.non_indetermined),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),
@@ -2047,6 +2050,7 @@ class Abf:
               'rs_train_size':    str(self.rs_train_size), 
               'rs_iter':          str(self.rs_iter), 
               'pca_size':         str(self.pca_size),
+              'non_indetermined': str(self.non_indetermined),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),

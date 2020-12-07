@@ -9,7 +9,7 @@ SCRIPT="script.py"
 CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ARRAYS - FULL
-# declare -a MODELS=("rf" "svm" "lstm" "mlp")
+# declare -a MODELS=("rf" "svm" "mlp" "lstm")
 # declare -a FILLS_MISSING=("time")
 # declare -a REDUCER=("" "--reducer")
 # declare -a CLASS_MODE=("" "--class_mode" "--class_mode --class_weight")
@@ -19,18 +19,18 @@ CLEAR="sudo pkill -f /home/pedro/anaconda3"
 # declare -a GS_TRAIN_SIZES=("--gs_train_size=0.01" "--gs_train_size=0.025" "--gs_train_size=0.05")
 
 # ARRAYS - FILTERED
-declare -a DAYS_THRESHOLD=("730" "1825")
-declare -a MODELS=("rf" "svm" "lstm" "mlp")
+declare -a DAYS_THRESHOLD=("3650")
+declare -a MODELS=("rf" "svm" "mlp" "lstm")
 declare -a FILLS_MISSING=("time")
 declare -a REDUCER=("--reducer")
 declare -a CLASS_MODE=("--class_mode")
 declare -a PROPAGATE=("")
 declare -a NORMALIZE=("")
-declare -a DAYS_IN_OUT=("--days_in=1 --days_out=5" "--days_in=3 --days_out=5" "--days_in=5 --days_out=5")
-declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01" "--rs_train_size=0.025")
+declare -a DAYS_IN_OUT=("--days_in=1 --days_out=5")
+declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01")
 declare -a RS_ITERS=("--rs_iter=500")
 declare -a PCA_SIZES=("--pca_size=0.900")
-declare -a INDETERMINED=("" "--non_indetermined")
+declare -a INDETERMINED=("--non_indetermined")
 
 # SHOW BASE DIR
 echo "$PYTHON $BASEDIR/$SCRIPT"
