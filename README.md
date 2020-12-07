@@ -1,6 +1,6 @@
-# Anomaly and Algal Bloom Forecast
+# Anomalous Behaviour Forecast
 
-Module responsable for forecasting anomalies and algal bloom occurences based on images from Google Earth Engine API and machine learning
+Module responsable for forecasting anomalies occurences based on images from Google Earth Engine API and machine learning
 
 
 
@@ -30,7 +30,7 @@ python /path/to/abf/script.py --lat_lon=-83.48811946836814,41.85776095627803,-83
 
 ### What are the results?
 
-The script will generate a 5-days forecast of occurrence of algae blooming in the inserted study area starting from input date. Therefore, a folder located in 'data' is created and named based on the date and version of the script executed. Example: /path/to/abyo/data/20201026_090433[v=V14-erie,d=2019-07-11,dt=90,din=5,dout=3,m=rf,f=time,rd=False,n=False,c=True,cw=False,p=False]. 
+The script will generate a 5-days forecast of occurrence of algae blooming in the inserted study area starting from input date. Therefore, a folder located in 'data' is created and named based on the date and version of the script executed. Example: /path/to/abyo/data/20201026_090433[v=V14-erie,d=2019-07-11,dt=90,din=1,dout=5,m=rf]. 
 
 ATTENTION: big date range tends to lead to memory leak, stopping the script execution. It is always a good pratice to split the dates in two or three parts, unless you have a big amount of memory in your computer.
 
@@ -65,8 +65,7 @@ algorithm = abf.Abf(days_threshold=1825,
                     lat_lon="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826",
                     cache_path=folder,
                     force_cache=False,
-                    scaler='robust',
-                    days_in=5,
+                    days_in=1,
                     days_out=5,
                     from_date="2019-07-11",
                     model="rf")
