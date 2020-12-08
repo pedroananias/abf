@@ -19,7 +19,7 @@ CLEAR="sudo pkill -f /home/pedro/anaconda3"
 # declare -a GS_TRAIN_SIZES=("--gs_train_size=0.01" "--gs_train_size=0.025" "--gs_train_size=0.05")
 
 # ARRAYS - FILTERED
-declare -a DAYS_THRESHOLD=("3650")
+declare -a DAYS_THRESHOLD=("2920")
 declare -a MODELS=("rf" "svm" "mlp" "lstm")
 declare -a FILLS_MISSING=("time")
 declare -a REDUCER=("--reducer")
