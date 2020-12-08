@@ -65,7 +65,7 @@ class Abf:
   dummy                       = -99999
   cloud_threshold             = 0.50 # only images where clear pixels are greater thans 50%
   max_tile_pixels             = 10000000 # if higher, will split the geometry into tiles
-  indices_thresholds          = {'ndwi': 0.3, 'ndvi': -0.15, 'sabi': -0.10, 'fai': -0.016}
+  indices_thresholds          = {'ndwi': 0.3, 'ndvi': -0.15, 'sabi': -0.10, 'fai': -0.004}
   n_cores                     = int(multiprocessing.cpu_count()*0.75) # only 75% of available cores
   random_state                = 123 # random state used in numpy and related shuffling problems
 
