@@ -2,3 +2,4 @@ data
 cache*
 debug
 nohup.out
+*.pyc
