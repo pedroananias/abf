@@ -312,20 +312,13 @@ def apply_masks(image, params: dict):
   cloud           = ee.Image(1).updateMask(mask_cloud_shadow(image, params['sensor']).Not()).rename('cloud')
   nocloud         = blank.updateMask(mask_cloud_shadow(image, params['sensor'])).rename('nocloud')
   water_nocloud   = water.updateMask(nocloud).rename('water_nocloud')
-
-  # Bands
-  red             = image.select(params['red']).rename('red').cast({"red": "double"})
-  green           = image.select(params['green']).rename('green').cast({"green": "double"})
-  blue            = image.select(params['blue']).rename('blue').cast({"blue": "double"})
-  nir             = image.select(params['nir']).rename('nir').cast({"nir": "double"})
-  swir            = image.select(params['swir']).rename('swir').cast({"swir": "double"})
       
   # Apply the indexes available in the image
-  ndwi            = image.expression('(green - swir) / (green + swir)',{'swir':image.select(params['swir']),'green':image.select(params['green'])}).rename('ndwi').cast({"ndwi": "double"})
-  ndvi            = image.expression('(nir - red) / (nir + red)',{'nir':image.select(params['nir']),'red':image.select(params['red'])}).rename('ndvi').cast({"ndvi": "double"})
-  sabi            = image.expression('(nir - red) / (blue + green)',{'nir':image.select(params['nir']),'red':image.select(params['red']),'blue':image.select(params['blue']),'green':image.select(params['green'])}).rename('sabi').cast({"sabi": "double"}) # Alawadi (2010)
-  fai             = image.expression('nir - (red + (swir - red) * ((c_nir - c_red) / (c_swir - c_red)))',{'swir':image.select(params['swir']),'nir':image.select(params['nir']),'red':image.select(params['red']),'c_nir':params['c_nir'],'c_red':params['c_red'],'c_swir':params['c_swir']}).rename('fai').cast({"fai": "double"}) # Oyama et al (2015)
-  label           = image.expression('((cloud == 1) ? -1 : (ndwi < 0.3)+(ndvi >= -0.15)+(sabi >= -0.10)+(fai >= -0.016))', {'ndwi': ndwi.select('ndwi'), 'ndvi': ndvi.select('ndvi'), 'sabi': sabi.select('sabi'), 'fai': fai.select('fai'), 'cloud': cloud.select('cloud')}).rename('label')
+  ndwi            = image.expression('(green - swir) / (green + swir)',{'swir':image.select(params['swir']).multiply(0.0001),'green':image.select(params['green']).multiply(0.0001)}).rename('ndwi').cast({"ndwi": "double"})
+  ndvi            = image.expression('(nir - red) / (nir + red)',{'nir':image.select(params['nir']).multiply(0.0001),'red':image.select(params['red']).multiply(0.0001)}).rename('ndvi').cast({"ndvi": "double"})
+  sabi            = image.expression('(nir - red) / (blue + green)',{'nir':image.select(params['nir']).multiply(0.0001),'red':image.select(params['red']).multiply(0.0001),'blue':image.select(params['blue']).multiply(0.0001),'green':image.select(params['green']).multiply(0.0001)}).rename('sabi').cast({"sabi": "double"}) # Alawadi (2010)
+  fai             = image.expression('nir - (red + (swir - red) * ((c_nir - c_red) / (c_swir - c_red)))',{'swir':image.select(params['swir']).multiply(0.0001),'nir':image.select(params['nir']).multiply(0.0001),'red':image.select(params['red']).multiply(0.0001),'c_nir':params['c_nir'],'c_red':params['c_red'],'c_swir':params['c_swir']}).rename('fai').cast({"fai": "double"}) # Oyama et al (2015)
+  label           = image.expression('((cloud == 1) ? -1 : (ndwi < 0.3)+(ndvi > -0.15)+(sabi > -0.10)+(fai > -0.004))', {'ndwi': ndwi.select('ndwi'), 'ndvi': ndvi.select('ndvi'), 'sabi': sabi.select('sabi'), 'fai': fai.select('fai'), 'cloud': cloud.select('cloud')}).rename('label')
 
   # Create the bands to the image and return it
   return image.addBands([water, water_nocloud, cloud, nocloud, ndwi, ndvi, sabi, fai, label])
