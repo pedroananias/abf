@@ -7,7 +7,7 @@ Module responsable for forecasting anomalies occurences based on images from Goo
 ### Dependencies
 
 - Python 3.7.7 64-bit ou superior
-- Modules: oauth2client earthengine-api matplotlib pandas numpy requests pillow geojson argparse hashlib joblib warnings scipy seaborn sklearn tensorflow
+- Modules: oauth2client earthengine-api matplotlib pandas numpy requests pillow geojson argparse joblib scipy seaborn sklearn tensorflow
 
 
 

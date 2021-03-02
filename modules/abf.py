@@ -103,7 +103,7 @@ class Abf:
   # dataframes
   df_columns                  = ['pixel','index','row','column','date','doy','lat','lon']+attributes
   df_columns_clear            = ['pixel','index','row','column','date','doy','lat','lon']+attributes_clear
-  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'non_indetermined', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'tp', 'tn', 'fp', 'fn']
+  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'tp', 'tn', 'fp', 'fn']
   df_timeseries               = None
   df_timeseries_scene         = None
   df_timeseries_grid          = None
@@ -154,7 +154,8 @@ class Abf:
                rs_train_size:     float         = 0.01,
                rs_iter:           int           = 500,
                pca_size:          float         = 0.900,
-               non_indetermined:  bool          = True,
+               attribute_lat_lon: bool          = True,
+               attribute_doy:     bool          = True,
                test_mode:         bool          = False):
     
     # get sensor parameters
@@ -192,7 +193,8 @@ class Abf:
     self.rs_train_size              = rs_train_size
     self.rs_iter                    = rs_iter
     self.pca_size                   = pca_size
-    self.non_indetermined           = non_indetermined
+    self.attribute_lat_lon          = attribute_lat_lon
+    self.attribute_doy              = attribute_doy
 
     # fix days_in and days_out for LSTM mode
     if self.model is None or self.model == "lstm":
@@ -245,7 +247,7 @@ class Abf:
       self.splitted_geometry            = self.split_geometry()
 
       # warning
-      print("Statistics: scale="+str(self.sensor_params['scale'])+" meters, pixels="+str(self.sample_total_pixel)+", initial_date='"+self.dates_timeseries[0].strftime("%Y-%m-%d")+"', end_date='"+self.dates_timeseries[1].strftime("%Y-%m-%d")+"', interval_images='"+str(self.collection.size().getInfo())+"', interval_unique_images='"+str(len(self.dates_timeseries_interval))+"', water_mask_images='"+str(self.collection_water.size().getInfo())+"', grid_size='"+str(self.grid_size)+"', days_in='"+str(self.days_in)+"', days_out='"+str(self.days_out)+"', morph_op='"+str(self.morph_op)+"', morph_op_iters='"+str(self.morph_op_iters)+"', convolve='"+str(self.convolve)+"', convolve_radius='"+str(self.convolve_radius)+"', scaler='"+str(self.scaler_str)+"', model='"+str(self.model)+"', fill_missing='"+str(self.fill_missing)+"', reducer='"+str(self.reducer)+"', normalized='"+str(self.normalized)+"', class_mode='"+str(self.class_mode)+"', class_weight='"+str(self.class_weight)+"', propagate='"+str(self.propagate)+"', rs_train_size='"+str(self.rs_train_size)+"', rs_iter='"+str(self.rs_iter)+"', pca_size='"+str(self.pca_size)+"', non_indetermined='"+str(self.non_indetermined)+"'")
+      print("Statistics: scale="+str(self.sensor_params['scale'])+" meters, pixels="+str(self.sample_total_pixel)+", initial_date='"+self.dates_timeseries[0].strftime("%Y-%m-%d")+"', end_date='"+self.dates_timeseries[1].strftime("%Y-%m-%d")+"', interval_images='"+str(self.collection.size().getInfo())+"', interval_unique_images='"+str(len(self.dates_timeseries_interval))+"', water_mask_images='"+str(self.collection_water.size().getInfo())+"', grid_size='"+str(self.grid_size)+"', days_in='"+str(self.days_in)+"', days_out='"+str(self.days_out)+"', morph_op='"+str(self.morph_op)+"', morph_op_iters='"+str(self.morph_op_iters)+"', convolve='"+str(self.convolve)+"', convolve_radius='"+str(self.convolve_radius)+"', scaler='"+str(self.scaler_str)+"', model='"+str(self.model)+"', fill_missing='"+str(self.fill_missing)+"', reducer='"+str(self.reducer)+"', normalized='"+str(self.normalized)+"', class_mode='"+str(self.class_mode)+"', class_weight='"+str(self.class_weight)+"', propagate='"+str(self.propagate)+"', rs_train_size='"+str(self.rs_train_size)+"', rs_iter='"+str(self.rs_iter)+"', pca_size='"+str(self.pca_size)+"', attr_lat_lon='"+str(self.attribute_lat_lon)+"', attr_doy='"+str(self.attribute_doy)+"'")
 
       # gargage collect
       gc.collect()
@@ -402,9 +404,12 @@ class Abf:
       gc.collect()
       return y.reshape(1,-1)[0]
     else:
+
+      # attributes
+      attributes_clear = [a for a in self.attributes_clear if a != 'cloud']
     
       # create support dataframe
-      y = pd.DataFrame(data=y.reshape(-1,4), columns=['ndwi', 'ndvi','sabi','fai'])
+      y = pd.DataFrame(data=y.reshape(-1,4), columns=attributes_clear)
       y['index'] = range(0,len(y))
 
       # return same dataframe with new column
@@ -894,6 +899,9 @@ class Abf:
     print()
     print("Filling empty dates...")
 
+    # attributes
+    attributes_clear  = [a for a in self.attributes_clear if a != 'cloud']
+
     # fill empty dates
     df = self.fill_missing_dates(df=df, fill=self.fill_missing)
 
@@ -943,11 +951,15 @@ class Abf:
     
     # get only data that matters
     str_label       = 'var'+str(len(self.attributes_selected)+1)
+    str_lat         = 'var'+str(self.attributes_selected.index('lat')+1)
+    str_lon         = 'var'+str(self.attributes_selected.index('lon')+1)
+    str_doy         = 'var'+str(self.attributes_selected.index('doy')+1)
     str_label_ndwi  = 'var'+str(self.attributes_selected.index('ndwi')+1)
     str_label_ndvi  = 'var'+str(self.attributes_selected.index('ndvi')+1)
     str_label_sabi  = 'var'+str(self.attributes_selected.index('sabi')+1)
     str_label_fai   = 'var'+str(self.attributes_selected.index('fai')+1)
     in_labels       = [s for i, s in enumerate(df_pixel.columns) if 't-' in s and not str_label+'(' in s]
+    in_labels       = [s for i, s in enumerate(in_labels) if (self.attribute_lat_lon or not str_lat in s) and (self.attribute_lat_lon or not str_lon in s) and (self.attribute_doy or not str_doy in s)]
     if self.class_mode:
       out_labels      = [s for i, s in enumerate(df_pixel.columns) if str_label+'(' in s  and not 't-' in s]
     else:
@@ -959,6 +971,13 @@ class Abf:
     for i, c in enumerate(new_columns[-len(out_labels):]):
       new_columns[new_columns.index(c)] = "out_"+str(i)
     df_pixel.columns = new_columns
+
+    # get only good labels (0 or all indexes)
+    df_queries = []
+    for c in df_pixel.columns:
+      if 'out_' in c:
+        df_queries.append("("+c+" == 0 or "+c+" == "+str(len(attributes_clear))+")")
+    df_pixel = df_pixel.query(" and ".join(df_queries))
 
     # show statistics
     print(df_pixel.describe())
@@ -1018,15 +1037,18 @@ class Abf:
     class_weight2 = None
     if self.class_mode:
       classes = np.unique(self.apply_label_y(y_gridsearch))
-      class_weight = []
-      class_weight2 = dict(zip(classes,utils.class_weight.compute_class_weight("balanced", classes, self.apply_label_y(y_gridsearch))))
-      for c in range(0,y_gridsearch.shape[1]):
-        class_weight.append(dict(zip(classes,utils.class_weight.compute_class_weight("balanced", classes, y_gridsearch[:,c]))))
       if self.class_weight:
+        class_weight = []
+        class_weight2 = dict(zip(classes,utils.class_weight.compute_class_weight("balanced", classes, self.apply_label_y(y_gridsearch))))
+        for c in range(0,y_gridsearch.shape[1]):
+          class_weight.append(dict(zip(classes,utils.class_weight.compute_class_weight("balanced", np.unique(y_gridsearch[:,c]), y_gridsearch[:,c]))))
         print()
         print("Defining class weights...")
         print(class_weight)
         print(class_weight2)
+      else:
+        class_weight = None
+        class_weight2 = None
 
     # create df_true dataframe
     y_test_label = self.apply_label_y(y_test)
@@ -1119,9 +1141,15 @@ class Abf:
 
       # attributes
       days_in = self.days_in
-      days_out = self.days_out
+      #days_out = self.days_out
       in_size = len(self.attributes_selected)
-      out_size = 1 if self.class_mode else len(self.indices_thresholds)
+      #out_size = 1 if self.class_mode else len(self.indices_thresholds)
+
+      # enabled attributes
+      if not self.attribute_lat_lon:
+        in_size = in_size - 2
+      if not self.attribute_doy:
+        in_size = in_size - 1
 
       #################################
       # Custom LSTM Model
@@ -1129,27 +1157,22 @@ class Abf:
       class KerasRegressorModified(tf.keras.wrappers.scikit_learn.KerasRegressor):
         def fit(self, x, y, **kwargs):
           kwargs = self.filter_sk_params(tf.keras.Sequential.predict_classes, kwargs)
-          sample_weight = np.array([class_weight2[y_] for y_ in np.mean(y, axis=1).astype("int32")]) if class_weight2 else None
-          sample_weight = None
-          x = x.reshape(-1, days_in, in_size)
-          y = y.reshape(-1, days_out, out_size)
+          sample_weight = np.array([class_weight2[y_] for y_ in np.mean(y.reshape(-1,y.shape[2]), axis=1).astype("int32")]) if class_weight2 else None
           return super(tf.keras.wrappers.scikit_learn.KerasRegressor, self).fit(x, y, validation_split=0.3, batch_size=int(batch_size/2), sample_weight=sample_weight, **kwargs)
         def predict(self, x, **kwargs):
-          kwargs = self.filter_sk_params(tf.keras.Sequential.predict_classes, kwargs)
-          x = x.reshape(-1, days_in, in_size)
           return self.model.predict(x, **kwargs)
           
       def lstm_modified(optimizer='adam', dropout=0.5, size=32, epochs=50):
         tf.keras.backend.set_floatx('float64')
         lstm_modified = tf.keras.Sequential(
           [
-            tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(int(size), activation="tanh", input_shape=(days_in, in_size))),
+            tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(int(size), activation="tanh", input_shape=(1, X_gridsearch.shape[1]))),
             tf.keras.layers.Dropout(dropout),
             tf.keras.layers.RepeatVector(days_in),
             tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(int(size), activation='tanh', return_sequences=True)),
             tf.keras.layers.Dropout(dropout),
             tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(int(size), activation='tanh')),
-            tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(int(out_size)))
+            tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1))
           ]
         )
         lstm_modified.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
@@ -1170,7 +1193,7 @@ class Abf:
       # apply RandomizedSearchCV and get best estimator and training the model
       start_time = time.time()
       rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=lstm_modified, verbose=1), param_distributions=random_grid, scoring=metrics.make_scorer(lstm_scorer), n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-      rs.fit(X_gridsearch, y_gridsearch)
+      rs.fit(X_gridsearch.reshape(X_gridsearch.shape[0], 1, X_gridsearch.shape[1]), y_gridsearch.reshape(y_gridsearch.shape[0], 1, y_gridsearch.shape[1]))
       lstm = rs.best_estimator_
 
       # training the model
@@ -1185,9 +1208,9 @@ class Abf:
 
       # get predictions on test set
       if self.class_mode:
-        y_pred_label  = self.apply_label_y(lstm.predict(X_test.reshape(-1, self.days_in, len(self.attributes_selected))).astype("int32"))
+        y_pred_label  = self.apply_label_y(lstm.predict(X_test.reshape(X_test.shape[0], 1, X_test.shape[1])).astype("int32"))
       else:
-        y_pred_label  = self.apply_label_y(lstm.predict(X_test.reshape(-1, self.days_in, len(self.attributes_selected))))
+        y_pred_label  = self.apply_label_y(lstm.predict(X_test.reshape(X_test.shape[0], 1, X_test.shape[1])))
       measures      = misc.concordance_measures(metrics.confusion_matrix(y_test_label, y_pred_label), y_test_label, y_pred_label)
 
       # reports
@@ -1394,8 +1417,8 @@ class Abf:
       df_predict = df_predict[(df_predict[attribute]!=abs(self.dummy))]
 
     # change cloud values
-    df_predict.loc[df_predict['cloud'] == abs(self.dummy), 'cloud']                 = 0.0
-    df_classification.loc[df_classification['cloud'] == abs(self.dummy), 'cloud']   = 0.0
+    df_predict.loc[(df_predict['cloud'].astype('int32') == abs(int(self.dummy))) | (df_predict['cloud'].astype('int32') == int(self.dummy)) , 'cloud']                       = 0.0
+    df_classification.loc[(df_classification['cloud'].astype('int32') == abs(int(self.dummy))) | (df_classification['cloud'].astype('int32') == int(self.dummy)), 'cloud']   = 0.0
 
     # get cluds from prediction
     df_predict_clouds           = df_predict[df_predict['cloud'] != 0.0][self.df_columns_clear]
@@ -1418,7 +1441,9 @@ class Abf:
     df_classification_proc      = misc.series_to_supervised(df_classification[df_classification['doy']==max(df_classification['doy'])][self.attributes_selected].values, self.days_in, self.days_out,dropnan=True)
     str_lat                     = 'var'+str(self.attributes_selected.index('lat')+1)+'(t-'+str(self.days_in)+')'
     str_lon                     = 'var'+str(self.attributes_selected.index('lon')+1)+'(t-'+str(self.days_in)+')'
+    str_doy                     = 'var'+str(self.attributes_selected.index('doy')+1)+'(t-'+str(self.days_in)+')'
     in_labels                   = [s for i, s in enumerate(df_classification_proc.columns) if 't-' in s]
+    in_labels                   = [s for i, s in enumerate(in_labels) if (self.attribute_lat_lon or not str_lat in s) and (self.attribute_lat_lon or not str_lon in s) and (self.attribute_doy or not str_doy in s)]
     array_lats_lons             = df_classification_proc[[str_lat,str_lon]].values
 
     # splitting training and testing sets
@@ -1460,6 +1485,14 @@ class Abf:
     color_map2[61:81]           = "red"
     color_map2[81:]             = "darkred"
 
+    # colormap
+    color_map3                  = np.empty((5,1), dtype=object)
+    color_map3[0]               = "cyan"
+    color_map3[1]               = "black"
+    color_map3[2]               = "black"
+    color_map3[3]               = "black"
+    color_map3[4]               = "magenta"
+
     # encoder colors
     color_encoder               = {"green":0,"yellow":1,"orange":2,"red":3,"darkred":4}
 
@@ -1473,15 +1506,23 @@ class Abf:
 
     # legends 2
     legends_colors2 = [Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='green',fill=True),
-                      Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='yellow',fill=True),
-                      Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='orange',fill=True),
-                      Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='red',fill=True),
-                      Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='darkred',fill=True),
-                      Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='gray',fill=True)]
+                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='yellow',fill=True),
+                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='orange',fill=True),
+                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='red',fill=True),
+                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='darkred',fill=True),
+                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='gray',fill=True),
+                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='black',fill=True)]
+
+    # legends
+    legends_colors3 = [Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='cyan',fill=True),
+                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='magenta',fill=True),
+                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='gray',fill=True),
+                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='black',fill=True)]
     
     # legends captions
-    legends_colors_captions   = ['Sem concordância', 'Baixa concordância', 'Média concordância', 'Alta concordância', 'Totalmente concordante', 'Cloud/Shadow']
-    legends_colors_captions2  = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%', 'Cloud/Shadow']
+    legends_colors_captions   = ['No agreement', 'Low agreement', 'Average agreement', 'High agreement', 'Totally in agreement', 'Land/Cloud/Shadow']
+    legends_colors_captions2  = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%', 'Land/Cloud/Shadow', 'Indetermined']
+    legends_colors_captions3  = ['Regular', 'Anomaly', 'Land/Cloud/Shadow', 'Indetermined']
 
     # go through each classifier
     dict_results  = []
@@ -1493,9 +1534,9 @@ class Abf:
       # check if model is LSTM
       if 'LSTM' in model:
         if self.class_mode:
-          y_pred = self.classifiers[model].predict(X.reshape(-1, self.days_in, 1)).reshape(-1, self.days_in*1)
+          y_pred = self.classifiers[model].predict(X.reshape(X.shape[0], 1, X.shape[1])).reshape(-1, self.days_in*1)
         else:
-          y_pred = self.classifiers[model].predict(X.reshape(-1, self.days_in, len(self.attributes_selected))).reshape(-1, self.days_in*len(self.indices_thresholds))
+          y_pred = self.classifiers[model].predict(X.reshape(X.shape[0], 1, X.shape[1])).reshape(-1, self.days_in*len(attributes_clear))
         df = pd.DataFrame(data=np.concatenate((array_lats_lons, y_pred), axis=1))
       # regular model
       else:
@@ -1531,9 +1572,9 @@ class Abf:
           # check if model is LSTM to format dataset for it
           if 'LSTM' in model:
             if self.class_mode:
-              y_pred = self.classifiers[model].predict(X.reshape(-1, self.days_in, 1)).reshape(-1, self.days_in*1)
+              y_pred = self.classifiers[model].predict(X.reshape(X.shape[0], 1, X.shape[1])).reshape(-1, self.days_in*1)
             else:
-              y_pred = self.classifiers[model].predict(X.reshape(-1, self.days_in, len(self.attributes_selected))).reshape(-1, self.days_in*len(self.indices_thresholds))
+              y_pred = self.classifiers[model].predict(X.reshape(X.shape[0], 1, X.shape[1])).reshape(-1, self.days_in*len(attributes_clear))
             df_new = pd.DataFrame(data=np.concatenate((array_lats_lons, y_pred), axis=1))
           # regular dataset format (rf, svm and mlp)
           else:
@@ -1552,8 +1593,7 @@ class Abf:
       df = df.groupby([0,1]).median().reset_index().fillna(method='ffill')
       if self.class_mode:
         df[df.columns[2:]] = df[df.columns[2:]].astype(dtype=np.int64, errors='ignore')
-      
-      
+
       # save time
       self.classifiers_runtime[model] = self.classifiers_runtime[model] + (time.time() - start_time)
 
@@ -1627,7 +1667,7 @@ class Abf:
             count_pixels = len(df_true)
 
             # apply color
-            for index, color in enumerate(color_map):
+            for index, color in enumerate(color_map3):
               df_true.loc[(df_true['label'] == index), 'color'] = color[0]
 
             # plot ground truth results
@@ -1651,17 +1691,17 @@ class Abf:
 
             # get date pixels
             df_true = df_predict[(df_predict['date']==date) & (df_predict['cloud']!=self.dummy)]
-            df_true['color'] = "green"
+            df_true['color'] = "black"
             count_pixels = len(df_true)
 
             # fix label value
-            df_true.loc[(df_true["label"]<3), 'label']  = 0
-            df_true.loc[(df_true["label"]>=3), 'label'] = 1
+            df_true.loc[(df_true["label"]>0) & (df_true["label"]<len(attributes_clear)), 'label'] = -1
+            df_true.loc[(df_true["label"]==len(attributes_clear)), 'label'] = 1
 
             # add class - true
             for row in range(1,self.grid_size+1):
               for column in range(1,self.grid_size+1):
-                df_grid = df_true[(df_true["row"]==row) & (df_true["column"]==column)]
+                df_grid = df_true[(df_true["row"]==row) & (df_true["column"]==column) & (df_true["label"]!=-1)]
                 if len(df_grid)>0:
                   grid_sum = df_grid["label"].sum()
                   pct = int((grid_sum/len(df_grid)) * 100)
@@ -1677,8 +1717,9 @@ class Abf:
             c.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
             c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
             if count_pixels > 0:
-              c.scatter(df_true['lat'], df_true['lon'], marker='s', s=markersize_scatter, c=df_true['color'].values, edgecolors='none')
+              c.scatter(df_true[df_true["label"]!=-1]['lat'], df_true[df_true["label"]!=-1]['lon'], marker='s', s=markersize_scatter, c=df_true[df_true["label"]!=-1]['color'].values, edgecolors='none')
               c.scatter(df_predict_clouds[(df_predict_clouds['date']==date)]['lat'], df_predict_clouds[(df_predict_clouds['date']==date)]['lon'], marker='s', s=markersize_scatter, c="gray", edgecolors='none')
+              c.scatter(df_true[df_true["label"]==-1]['lat'], df_true[df_true["label"]==-1]['lon'], marker='s', s=markersize_scatter, c="black", edgecolors='none')
             c.margins(x=0,y=0)
             plot_count += 1
 
@@ -1699,16 +1740,16 @@ class Abf:
             # get date pixels
             df_true       = df_predict[(df_predict['date']==date) & (df_predict['cloud']!=self.dummy)]
             count_pixels  = len(df_true)
-            color         = "green"
+            color         = "black"
             pct           = 0.0
 
             # fix label value
-            df_true.loc[(df_true["label"]<3), 'label']  = 0
-            df_true.loc[(df_true["label"]>=3), 'label'] = 1
+            df_true.loc[(df_true["label"]>0) & (df_true["label"]<len(attributes_clear)), 'label'] = -1
+            df_true.loc[(df_true["label"]==len(attributes_clear)), 'label'] = 1
 
             # true
-            if len(df_true)>0:
-              pct = int((df_true['label'].sum()/len(df_true)) * 100)
+            if len(df_true[df_true["label"]!=-1])>0:
+              pct = int((df_true[df_true["label"]!=-1]['label'].sum()/len(df_true)) * 100)
               color = color_map2[pct][0]
 
             # plot
@@ -1723,6 +1764,7 @@ class Abf:
             if count_pixels > 0:
               c.scatter(df_true['lat'], df_true['lon'], marker='s', s=markersize_scatter, c=color, edgecolors='none')
               c.scatter(df_predict_clouds[(df_predict_clouds['date']==date)]['lat'], df_predict_clouds[(df_predict_clouds['date']==date)]['lon'], marker='s', s=markersize_scatter, c="gray", edgecolors='none')
+              #c.scatter(df_true[df_true["label"]==-1]['lat'], df_true[df_true["label"]==-1]['lon'], marker='s', s=markersize_scatter, c="black", edgecolors='none')
             c.margins(x=0,y=0)
             plot_count += 1
 
@@ -1759,7 +1801,7 @@ class Abf:
           df_merge['color_predicted'] = "black"
 
           # apply color
-          for index, color in enumerate(color_map):
+          for index, color in enumerate(color_map3):
             df_merge.loc[(df_merge['label_predicted'] == index), 'color_predicted'] = color[0]
           
           # pixel plot
@@ -1770,13 +1812,10 @@ class Abf:
             print("[Pixel] Evaluating prediction for date "+str(date.strftime("%Y-%m-%d"))+"...")
 
             # labels arrays
-            if count_pixels > 0:
-              if self.non_indetermined:
-                y_pred   = df_merge[df_merge['label']!=2.0]['label_predicted'].values.reshape((-1, 1))
-                y_true   = df_merge[df_merge['label']!=2.0]['label'].values.reshape((-1, 1))
-              else:
-                y_pred   = df_merge['label_predicted'].values.reshape((-1, 1))
-                y_true   = df_merge['label'].values.reshape((-1, 1))
+            df_merge_ = df_merge[((df_merge['label']==0) | (df_merge['label']==len(attributes_clear))) & ((df_merge['label_predicted']==0) | (df_merge['label_predicted']==len(attributes_clear)))]
+            if len(df_merge_) > 0:
+                y_pred   = df_merge_['label_predicted'].values.reshape((-1, 1))
+                y_true   = df_merge_['label'].values.reshape((-1, 1))
 
             # report
             measures = misc.concordance_measures(metrics.confusion_matrix(y_true, y_pred), y_true, y_pred)
@@ -1814,7 +1853,6 @@ class Abf:
               'rs_train_size':    str(self.rs_train_size), 
               'rs_iter':          str(self.rs_iter), 
               'pca_size':         str(self.pca_size),
-              'non_indetermined': str(self.non_indetermined),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),
@@ -1846,7 +1884,7 @@ class Abf:
             if count_pixels > 0:
               c.scatter(df_merge['lat'], df_merge['lon'], marker='s', s=markersize_scatter, c=df_merge['color_predicted'].values, edgecolors='none')
             if i == len(self.predict_dates)-1:
-              c.legend(legends_colors, legends_colors_captions, loc='upper center', bbox_to_anchor=(-0.18, -0.28), ncol=3, fontsize='x-small', fancybox=True, shadow=True)
+              c.legend(legends_colors3, legends_colors_captions3, loc='upper center', bbox_to_anchor=(-0.18, -0.28), ncol=4, fontsize='x-small', fancybox=True, shadow=True)
             c.margins(x=0,y=0)
             plot_count += 1
 
@@ -1861,23 +1899,26 @@ class Abf:
             print("[Grid] Evaluating prediction for date "+str(date.strftime("%Y-%m-%d"))+"...")
 
             # labels arrays
-            df_merge['class']             = 0
-            df_merge['color']             = "green"
-            df_merge['class_predicted']   = 0
-            df_merge['color_predicted']   = "green"
+            df_merge['class']             = -1
+            df_merge['color']             = "black"
+            df_merge['class_predicted']   = -1
+            df_merge['color_predicted']   = "black"
 
             # fix label value
-            df_merge.loc[(df_merge["label"]<3), 'label']                        = 0
-            df_merge.loc[(df_merge["label"]>=3), 'label']                       = 1
-            df_merge.loc[(df_merge["label_predicted"]<3), 'label_predicted']    = 0
-            df_merge.loc[(df_merge["label_predicted"]>=3), 'label_predicted']   = 1
+            df_merge.loc[(df_merge["label"]>0) & (df_merge["label"]<len(attributes_clear)), 'label'] = -1
+            df_merge.loc[(df_merge["label"]==len(attributes_clear)), 'label'] = 1   
+            df_merge.loc[(df_merge["label_predicted"]>0) & (df_merge["label_predicted"]<len(attributes_clear)), 'label'] = -1
+            df_merge.loc[(df_merge["label_predicted"]==len(attributes_clear)), 'label_predicted'] = 1   
 
+            # filter edge values
+            df_merge_ = df_merge[(df_merge['label']!=-1) & (df_merge['label_predicted']!=-1)] 
+            
             # add class
             for row in range(1,self.grid_size+1):
               for column in range(1,self.grid_size+1):
 
                 # select grid
-                df_grid = df_merge[(df_merge["row"]==row) & (df_merge["column"]==column)]
+                df_grid = df_merge_[(df_merge_["row"]==row) & (df_merge_["column"]==column)]
 
                 # true
                 if len(df_grid)>0:
@@ -1885,26 +1926,22 @@ class Abf:
                   pct = int((grid_sum/len(df_grid)) * 100)
                   df_merge.loc[(df_merge["row"]==row) & (df_merge["column"]==column), 'class'] = pct
                   df_merge.loc[(df_merge["row"]==row) & (df_merge["column"]==column), 'color'] = color_map2[pct][0]
-                
+                  df_merge_.loc[(df_merge_["row"]==row) & (df_merge_["column"]==column), 'class'] = pct
+                  df_merge_.loc[(df_merge_["row"]==row) & (df_merge_["column"]==column), 'color'] = color_map2[pct][0]
+              
                 # pred
                 if len(df_grid)>0:
                   grid_sum = df_grid["label_predicted"].sum()
                   pct = int((grid_sum/len(df_grid)) * 100)
                   df_merge.loc[(df_merge["row"]==row) & (df_merge["column"]==column), 'class_predicted'] = pct
                   df_merge.loc[(df_merge["row"]==row) & (df_merge["column"]==column), 'color_predicted'] = color_map2[pct][0]
+                  df_merge_.loc[(df_merge_["row"]==row) & (df_merge_["column"]==column), 'class_predicted'] = pct
+                  df_merge_.loc[(df_merge_["row"]==row) & (df_merge_["column"]==column), 'color_predicted'] = color_map2[pct][0]
 
             # measures
-            if count_pixels > 0:
-
-              # encoder colors
-              #df_merge['color_encoded'] = color_encoder2.transform(df_merge['color'].values)
-              #df_merge['color_predicted_encoded'] = color_encoder2.transform(df_merge['color_predicted'].values)
-
-              # separate arrays
-              #y_pred = df_merge.groupby(['row','column']).median().reset_index()['color_predicted'].values.reshape((-1, 1))
-              #y_true = df_merge.groupby(['row','column']).median().reset_index()['color'].values.reshape((-1, 1))
-              y_pred = [color_encoder[y] for y in df_merge['color'].values]
-              y_true = [color_encoder[y] for y in df_merge['color_predicted'].values]
+            if len(df_merge_) > 0:
+              y_pred = [color_encoder[y] for y in df_merge_['color'].values]
+              y_true = [color_encoder[y] for y in df_merge_['color_predicted'].values]
               
             # report
             measures = misc.concordance_measures(metrics.confusion_matrix(y_true, y_pred), y_true, y_pred)
@@ -1942,7 +1979,6 @@ class Abf:
               'rs_train_size':    str(self.rs_train_size), 
               'rs_iter':          str(self.rs_iter), 
               'pca_size':         str(self.pca_size),
-              'non_indetermined': str(self.non_indetermined),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),
@@ -1972,9 +2008,10 @@ class Abf:
             c.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
             c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
             if count_pixels > 0:
-              c.scatter(df_merge['lat'], df_merge['lon'], marker='s', s=markersize_scatter, c=df_merge['color_predicted'].values, edgecolors='none')
+              c.scatter(df_merge[df_merge["label_predicted"]!=-1]['lat'], df_merge[df_merge["label_predicted"]!=-1]['lon'], marker='s', s=markersize_scatter, c=df_merge[df_merge["label_predicted"]!=-1]['color_predicted'].values, edgecolors='none')
+              c.scatter(df_merge[df_merge["label_predicted"]==-1]['lat'], df_merge[df_merge["label_predicted"]==-1]['lon'], marker='s', s=markersize_scatter, c="black", edgecolors='none')
             if i == len(self.predict_dates)-1:
-              c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.28, -0.28), ncol=3, fontsize='x-small', fancybox=True, shadow=True)
+              c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.28, -0.28), ncol=4, fontsize='x-small', fancybox=True, shadow=True)
             c.margins(x=0,y=0)
             plot_count += 1
 
@@ -1999,24 +2036,25 @@ class Abf:
             print("[Scene] Evaluating prediction for date "+str(date.strftime("%Y-%m-%d"))+"...")
 
             # labels arrays
-            color = "green"
+            color = "black"
 
             # fix label value
-            df_merge.loc[(df_merge["label"]<3), 'label']                        = 0
-            df_merge.loc[(df_merge["label"]>=3), 'label']                       = 1
-            df_merge.loc[(df_merge["label_predicted"]<3), 'label_predicted']    = 0
-            df_merge.loc[(df_merge["label_predicted"]>=3), 'label_predicted']   = 1
+            df_merge.loc[(df_merge["label"]>0) & (df_merge["label"]<len(attributes_clear)), 'label'] = -1
+            df_merge.loc[(df_merge["label"]==len(attributes_clear)), 'label'] = 1   
+            df_merge.loc[(df_merge["label_predicted"]>0) & (df_merge["label_predicted"]<len(attributes_clear)), 'label'] = -1
+            df_merge.loc[(df_merge["label_predicted"]==len(attributes_clear)), 'label_predicted'] = 1   
+
+            # filter edge values
+            df_merge_ = df_merge[(df_merge['label']!=-1) & (df_merge['label_predicted']!=-1)] 
 
             # true
-            if len(df_merge)>0:
-              pct     = int((df_merge['label'].sum()/len(df_merge)) * 100)
-              #y_true  = color_encoder2.transform(color_map2[pct])
+            if len(df_merge_)>0:
+              pct     = int((df_merge_['label'].sum()/len(df_merge)) * 100)
               y_true  = [color_encoder[color_map2[pct][0]]]
             
             # pred
-            if len(df_merge)>0:
-              pct     = int((df_merge['label_predicted'].sum()/len(df_merge)) * 100)
-              #y_pred  = color_encoder2.transform(color_map2[pct])
+            if len(df_merge_)>0:
+              pct     = int((df_merge_['label_predicted'].sum()/len(df_merge)) * 100)
               y_pred  = [color_encoder[color_map2[pct][0]]]
               color   = color_map2[pct][0]
 
@@ -2056,7 +2094,6 @@ class Abf:
               'rs_train_size':    str(self.rs_train_size), 
               'rs_iter':          str(self.rs_iter), 
               'pca_size':         str(self.pca_size),
-              'non_indetermined': str(self.non_indetermined),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),
@@ -2086,9 +2123,10 @@ class Abf:
             c.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
             c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
             if count_pixels > 0:
-              c.scatter(df_merge['lat'], df_merge['lon'], marker='s', s=markersize_scatter, c=color, edgecolors='none')
+              c.scatter(df_merge[df_merge["label_predicted"]!=-1]['lat'], df_merge[df_merge["label_predicted"]!=-1]['lon'], marker='s', s=markersize_scatter, c=color, edgecolors='none')
+              c.scatter(df_merge[df_merge["label_predicted"]==-1]['lat'], df_merge[df_merge["label_predicted"]==-1]['lon'], marker='s', s=markersize_scatter, c="black", edgecolors='none')
             if i == len(self.predict_dates)-1:
-              c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.28, -0.28), ncol=3, fontsize='x-small', fancybox=True, shadow=True)
+              c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.28, -0.28), ncol=4, fontsize='x-small', fancybox=True, shadow=True)
             c.margins(x=0,y=0)
             plot_count += 1
 

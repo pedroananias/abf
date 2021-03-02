@@ -9,67 +9,94 @@ SCRIPT="script.py"
 CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ARRAYS - FULL
-# declare -a MODELS=("rf" "svm" "mlp" "lstm")
-# declare -a FILLS_MISSING=("time")
-# declare -a REDUCER=("" "--reducer")
-# declare -a CLASS_MODE=("" "--class_mode" "--class_mode --class_weight")
-# declare -a PROPAGATE=("" "--propagate")
-# declare -a NORMALIZE=("" "--non_normalized")
-# declare -a DAYS_IN_OUT=("--days_in=3 --days_out=3" "--days_in=3 --days_out=5" "--days_in=5 --days_out=5" "--days_in=10 --days_out=3" "--days_in=10 --days_out=5")
-# declare -a GS_TRAIN_SIZES=("--gs_train_size=0.01" "--gs_train_size=0.025" "--gs_train_size=0.05")
-
-# ARRAYS - FILTERED
-declare -a DAYS_THRESHOLD=("2920")
+declare -a DAYS_THRESHOLD=("30" "90" "180" "365" "730" "1825")
+declare -a DAYS_IN_OUT=("--days_in=1 --days_out=5" "--days_in=3 --days_out=5" "--days_in=5 --days_out=5")
 declare -a MODELS=("rf" "svm" "mlp" "lstm")
-declare -a FILLS_MISSING=("time")
-declare -a REDUCER=("--reducer")
-declare -a CLASS_MODE=("--class_mode")
-declare -a PROPAGATE=("")
-declare -a NORMALIZE=("")
-declare -a DAYS_IN_OUT=("--days_in=1 --days_out=5")
-declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01")
-declare -a RS_ITERS=("--rs_iter=500")
-declare -a PCA_SIZES=("--pca_size=0.900")
-#declare -a INDETERMINED=("--non_indetermined")
+declare -a FILLS_MISSING=("--fill_missing=dummy", "--fill_missing=dummy --remove_dummies" "--fill_missing=ffill" "--fill_missing=bfill" "--fill_missing=time" "--fill_missing=linear")
+declare -a REDUCER=("--reducer --pca_size=0.900" "--reducer --pca_size=0.950" "--reducer --pca_size=0.990")
+declare -a CLASS_MODE=("--class_mode" "--class_mode --class_weight")
+declare -a PROPAGATE=("" "--propagate")
+declare -a NORMALIZE=("" "--non_normalized")
+declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01" "--rs_train_size=0.025" "--rs_train_size=0.05" "--rs_train_size=0.10")
+declare -a RS_ITERS=("--rs_iter=5" "--rs_iter=10" "--rs_iter=25" "--rs_iter=50" "--rs_iter=100")
 
 # SHOW BASE DIR
 echo "$PYTHON $BASEDIR/$SCRIPT"
 
+# ############################################################################################
+# ## LAKE ERIE
+
+# # ARGUMENTS
+# NAME="erie"
+# LAT_LON="-83.46168361631736,41.74451005963491,-83.39542232481345,41.69992268431667"
+# FROM_DATE="2019-07-11"
+
+# # EXECUTIONS
+# for rs_train_size in "${RS_TRAIN_SIZES[@]}"
+# do
+# 	for rs_iter in "${RS_ITERS[@]}"
+# 	do
+# 		for class_mode in "${CLASS_MODE[@]}"
+# 		do
+# 			for day_threshold in "${DAYS_THRESHOLD[@]}"
+# 			do
+# 				for days_in_out in "${DAYS_IN_OUT[@]}"
+# 				do
+# 					for reducer in "${REDUCER[@]}"
+# 					do
+# 						for fill_missing in "${FILLS_MISSING[@]}"
+# 						do
+# 							for model in "${MODELS[@]}"
+# 							do
+# 								for propagate in "${PROPAGATE[@]}"
+# 								do
+# 									for normalized in "${NORMALIZE[@]}"
+# 									do
+# 										eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $days_in_out $fill_missing $reducer $class_mode $propagate $normalized $rs_train_size $rs_iter"
+# 									done
+# 								done
+# 							done
+# 						done
+# 					done
+# 				done
+# 			done
+# 		done
+# 	done
+# done
+
+# ############################################################################################
+
+
 ############################################################################################
-## LAKE ERIE
+## LAKE CHILIKA
 
 # ARGUMENTS
-NAME="erie"
-LAT_LON="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826"
-FROM_DATE="2019-07-11"
+NAME="chilika"
+LAT_LON="85.15749649545916,19.628963984868907,85.21105484506853,19.590154721044673"
+FROM_DATE="2020-03-29"
 
 # EXECUTIONS
 for rs_train_size in "${RS_TRAIN_SIZES[@]}"
 do
-	for model in "${MODELS[@]}"
+	for rs_iter in "${RS_ITERS[@]}"
 	do
-		#for indetermined in "${INDETERMINED[@]}"
-		#do
-		for rs_iter in "${RS_ITERS[@]}"
+		for class_mode in "${CLASS_MODE[@]}"
 		do
-			for pca_size in "${PCA_SIZES[@]}"
+			for day_threshold in "${DAYS_THRESHOLD[@]}"
 			do
-				for day_threshold in "${DAYS_THRESHOLD[@]}"
+				for days_in_out in "${DAYS_IN_OUT[@]}"
 				do
-					for days_in_out in "${DAYS_IN_OUT[@]}"
+					for reducer in "${REDUCER[@]}"
 					do
-						for class_mode in "${CLASS_MODE[@]}"
+						for fill_missing in "${FILLS_MISSING[@]}"
 						do
-							for fill_missing in "${FILLS_MISSING[@]}"
+							for model in "${MODELS[@]}"
 							do
 								for propagate in "${PROPAGATE[@]}"
 								do
 									for normalized in "${NORMALIZE[@]}"
 									do
-										for reducer in "${REDUCER[@]}"
-										do
-											eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE $days_in_out --model=$model --days_threshold=$day_threshold --fill_missing=$fill_missing $reducer $class_mode $propagate $normalized $rs_train_size $rs_iter $pca_size"
-										done
+										eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $days_in_out $fill_missing $reducer $class_mode $propagate $normalized $rs_train_size $rs_iter"
 									done
 								done
 							done
@@ -78,37 +105,7 @@ do
 				done
 			done
 		done
-		#done
 	done
 done
 
 ############################################################################################
-
-
-# ############################################################################################
-# ## LAKE CHILIKA
-
-# # ARGUMENTS
-# NAME="chilika"
-# LAT_LON="85.08856074928927,19.698732779758075,85.28279700936078,19.546819354913833"
-# FROM_DATE="2020-03-30"
-
-# # EXECUTIONS
-# for model in "${MODELS[@]}"
-# do
-# 	for fill_missing in "${FILLS_MISSING[@]}"
-# 	do
-# 		for reducer in "${REDUCER[@]}"
-# 		do
-# 			for days_in in 5 7 10
-# 			do
-# 				for day_threshold in 365 180
-# 				do
-# 					eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --days_in=$days_in --model=$model --days_threshold=$day_threshold --fill_missing=$fill_missing $reducer"
-# 				done
-# 			done
-# 		done
-# 	done
-# done
-
-# ############################################################################################

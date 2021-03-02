@@ -61,10 +61,14 @@
 #
 # - Version 16:
 # - Changed some default parameters based on previous tests
+#
+# - Version 17:
+# - Added parameters for new tests and modification of the LSTM modelling process
+# - Changed training labels selection, using only edges values (0 and total indexes)
 #####################################################################################################################################
 
 # ### Version
-version = "V16"
+version = "V17"
 
 
 
@@ -133,6 +137,14 @@ parser.add_argument('--rs_iter', dest='rs_iter', action='store', type=int, defau
                    help="It allow increase th randomized search iteration size")
 parser.add_argument('--pca_size', dest='pca_size', action='store', type=float, default=0.900,
                    help="Define PCA reducer variance size")
+parser.add_argument('--convolve', dest='convolve', action='store_true',
+                   help="Define if a convolution box-car low-pass filter will be applied to images before training")
+parser.add_argument('--convolve_radius', dest='convolve_radius', action='store', type=int, default=1,
+                   help="Define the amont of radius will be used in the convolution box-car low-pass filter")
+parser.add_argument('--disable_attribute_lat_lon', dest='disable_attribute_lat_lon', action='store_false',
+                   help="Disable attributes lat and lons from training modeling")
+parser.add_argument('--disable_attribute_doy', dest='disable_attribute_doy', action='store_false',
+                   help="Disable attribute doy from training modeling")
 parser.add_argument('--save_pairplots', dest='save_pairplots', action='store_true',
                    help="Save pairplots from attributes and indices")
 parser.add_argument('--save_grid', dest='save_grid', action='store_true',
@@ -203,8 +215,8 @@ try:
                       force_cache=False,
                       morph_op=None, 
                       morph_op_iters=1,
-                      convolve=False,
-                      convolve_radius=1,
+                      convolve=args.convolve,
+                      convolve_radius=args.convolve_radius,
                       scaler='robust',
                       days_in=args.days_in,
                       days_out=args.days_out,
@@ -220,7 +232,8 @@ try:
                       rs_train_size=args.rs_train_size,
                       rs_iter=args.rs_iter,
                       pca_size=args.pca_size,
-                      non_indetermined=True,
+                      attribute_lat_lon=args.disable_attribute_lat_lon,
+                      attribute_doy=args.disable_attribute_doy,
                       shuffle=True,
                       test_mode=False)
 
