@@ -65,10 +65,14 @@
 # - Version 17:
 # - Added parameters for new tests and modification of the LSTM modelling process
 # - Changed training labels selection, using only edges values (0 and total indexes)
+#
+# - Version 18:
+# - Fixes in the modelling process and label selection
+# - Added ROI validation from Google Earth Engine Console
 #####################################################################################################################################
 
 # ### Version
-version = "V17"
+version = "V18"
 
 
 
@@ -256,15 +260,16 @@ try:
   else:
     algorithm.train(batch_size=2048, disable_gpu=True)
     algorithm.predict(folder=folder+"/prediction")
+    algorithm.validate_using_roi(path='users/pedroananias/'+str(args.name), rois=['date_sensor_regular', 'date_sensor_anomaly'], labels=[0, 1])
 
     # prediction results
     algorithm.save_dataset(df=algorithm.df_results, path=folder+'/results.csv')
-    algorithm.save_results_plot(df=algorithm.df_results, path=folder+'/results.png')
+    #algorithm.save_results_plot(df=algorithm.df_results, path=folder+'/results.png')
 
     # preprocessing results
     algorithm.save_dataset(df=algorithm.df_timeseries, path=folder+'/timeseries.csv')
-    algorithm.save_timeseries_plot(df=algorithm.df_timeseries, path=folder+'/timeseries.png')
-    algorithm.save_timeseries_plot(df=algorithm.df_timeseries, path=folder+'/timeseries_join.png', join=True)
+    #algorithm.save_timeseries_plot(df=algorithm.df_timeseries, path=folder+'/timeseries.png')
+    #algorithm.save_timeseries_plot(df=algorithm.df_timeseries, path=folder+'/timeseries_join.png', join=True)
 
     # save training datasets
     if args.save_train == True:

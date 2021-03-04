@@ -109,6 +109,7 @@ class Abf:
   df_timeseries_grid          = None
   df_train                    = [None,None]
   df_test                     = [None,None]
+  df_randomizedsearch         = [None,None]
   df_results                  = None
   df_pretraining              = None
 
@@ -119,9 +120,10 @@ class Abf:
   classification_dates        = None
   predict_dates               = None
 
-  # classifiers
+  # dicts
   classifiers                 = {}
   classifiers_runtime         = {}
+  predictions                 = {}
 
   # constructor
   def __init__(self,
@@ -639,7 +641,7 @@ class Abf:
 
 
   # extract image's coordinates and pixels values
-  def extract_image_pixels(self, image: ee.Image, date, apply_attributes: bool = True):
+  def extract_image_pixels(self, image: ee.Image, date, apply_attributes: bool = True, force_cache: bool = False, disable_threshold: bool = False):
 
     # warning
     print("Processing date ["+str(date.strftime("%Y-%m-%d"))+"]...")
@@ -653,7 +655,7 @@ class Abf:
     try:
 
       # warning - user disabled cache
-      if self.force_cache:
+      if self.force_cache or force_cache:
         raise Exception()
 
       # extract pixel values from cache
@@ -711,7 +713,7 @@ class Abf:
             print("Pixel and cloud score for geometry #"+str(i+1)+": "+str(pixel_score)+" and "+str(water_nocloud_score)+"!")
 
             # check if image is good for processing
-            if pixel_score >= 0.50 and water_nocloud_score >= self.cloud_threshold:
+            if (pixel_score >= 0.50 and water_nocloud_score >= self.cloud_threshold) or disable_threshold:
               if apply_attributes:
                 geometry_lons_lats_attributes = gee.extract_latitude_longitude_pixel(image=clip, geometry=self.geometry, bands=[a+"_water" for a in self.attributes], scale=self.sensor_params['scale'])
               else:
@@ -973,11 +975,12 @@ class Abf:
     df_pixel.columns = new_columns
 
     # get only good labels (0 or all indexes)
-    df_queries = []
-    for c in df_pixel.columns:
-      if 'out_' in c:
-        df_queries.append("("+c+" == 0 or "+c+" == "+str(len(attributes_clear))+")")
-    df_pixel = df_pixel.query(" and ".join(df_queries))
+    if self.class_mode:
+      df_queries = []
+      for c in df_pixel.columns:
+        if 'out_' in c:
+          df_queries.append("("+c+" == 0 or "+c+" == "+str(len(attributes_clear))+")")
+      df_pixel = df_pixel.query(" and ".join(df_queries))
 
     # show statistics
     print(df_pixel.describe())
@@ -1031,6 +1034,9 @@ class Abf:
     X_test, y_test                    = self.df_test
     X_gridsearch, _, y_gridsearch, _  = model_selection.train_test_split(X_train, y_train, train_size=self.rs_train_size, random_state=self.random_state)
 
+    # fill randomized search dataframe
+    self.df_randomizedsearch          = [X_gridsearch,y_gridsearch]
+
     # compute class weight from gridsearch dataset
     classes = None
     class_weight = None
@@ -1061,69 +1067,72 @@ class Abf:
 
     # check if model was selected in options
     if self.model is None or self.model == "mlp":
+      try:
 
-      # jump line
-      print()
-      print("Creating the MultiLayer Perceptron with RandomizedSearchCV parameterization model...")
+        # jump line
+        print()
+        print("Creating the MultiLayer Perceptron with RandomizedSearchCV parameterization model...")
 
-      #################################
-      # Custom MultiLayer Perceptron Model
-      # Change KerasRegressor
-      class KerasRegressorModified(tf.keras.wrappers.scikit_learn.KerasRegressor):
-        def fit(self, x, y, **kwargs):
-          return super(tf.keras.wrappers.scikit_learn.KerasRegressor, self).fit(x, y, validation_split=0.3, batch_size=batch_size, class_weight=class_weight2)
+        #################################
+        # Custom MultiLayer Perceptron Model
+        # Change KerasRegressor
+        class KerasRegressorModified(tf.keras.wrappers.scikit_learn.KerasRegressor):
+          def fit(self, x, y, **kwargs):
+            return super(tf.keras.wrappers.scikit_learn.KerasRegressor, self).fit(x, y, validation_split=0.3, batch_size=batch_size, class_weight=class_weight2)
 
-      def mlp_modified(optimizer='adam', dropout=0.2):
-        mlp_modified = tf.keras.Sequential(
-          [
-            tf.keras.layers.Dense(512, activation="tanh", input_shape=(in_attributes,)),
-            tf.keras.layers.Dropout(dropout),
-            tf.keras.layers.Dense(256, activation="tanh"),
-            tf.keras.layers.Dropout(dropout),
-            tf.keras.layers.Dense(128, activation="tanh"),
-            tf.keras.layers.Dropout(dropout),
-            tf.keras.layers.Dense(out_attributes)
-          ]
-        )
-        mlp_modified.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
-        return mlp_modified
-      ##################################
+        def mlp_modified(optimizer='adam', dropout=0.2):
+          mlp_modified = tf.keras.Sequential(
+            [
+              tf.keras.layers.Dense(512, activation="tanh", input_shape=(in_attributes,)),
+              tf.keras.layers.Dropout(dropout),
+              tf.keras.layers.Dense(256, activation="tanh"),
+              tf.keras.layers.Dropout(dropout),
+              tf.keras.layers.Dense(128, activation="tanh"),
+              tf.keras.layers.Dropout(dropout),
+              tf.keras.layers.Dense(out_attributes)
+            ]
+          )
+          mlp_modified.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
+          return mlp_modified
+        ##################################
 
-      # RandomizedSearchCV
-      random_grid = {
-        'dropout':       [0.0, 0.1, 0.2, 0.3, 0.4, 0.5],
-        'epochs':        [10, 50, 100, 200, 300, 400, 500],
-        'optimizer':     ['SGD', 'RMSprop', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam']
-      }
+        # RandomizedSearchCV
+        random_grid = {
+          'dropout':       [0.0, 0.1, 0.2, 0.3, 0.4, 0.5],
+          'epochs':        [10, 50, 100, 200, 300, 400, 500],
+          'optimizer':     ['SGD', 'RMSprop', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam']
+        }
 
-      # apply RandomizedSearchCV and get best estimator and training the model
-      start_time = time.time()
-      rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=mlp_modified, verbose=1), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-      rs.fit(X_gridsearch, y_gridsearch)
-      mlp = rs.best_estimator_
+        # apply RandomizedSearchCV and get best estimator and training the model
+        start_time = time.time()
+        rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=mlp_modified, verbose=1), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        rs.fit(X_gridsearch, y_gridsearch)
+        mlp = rs.best_estimator_
 
-      # training the model
-      # model name
-      str_model = "MLP (dropout="+str(rs.best_params_['dropout'])+",epochs="+str(rs.best_params_['epochs'])+",optimizer="+str(rs.best_params_['optimizer'])+")"
-      self.classifiers_runtime[str_model] = time.time() - start_time
-      self.classifiers[str_model] = mlp
+        # training the model
+        # model name
+        str_model = "MLP (dropout="+str(rs.best_params_['dropout'])+",epochs="+str(rs.best_params_['epochs'])+",optimizer="+str(rs.best_params_['optimizer'])+")"
+        self.classifiers_runtime[str_model] = time.time() - start_time
+        self.classifiers[str_model] = mlp
 
-      # warning
-      print()
-      print("Evaluating the "+str(str_model)+" model...")
+        # warning
+        print()
+        print("Evaluating the "+str(str_model)+" model...")
 
-      # get predictions on test set
-      if self.class_mode:
-        y_pred_label  = self.apply_label_y(mlp.predict(X_test).astype("int32"))
-      else:
-        y_pred_label  = self.apply_label_y(mlp.predict(X_test))
-      measures = misc.concordance_measures(metrics.confusion_matrix(y_test_label, y_pred_label), y_test_label, y_pred_label)
+        # get predictions on test set
+        if self.class_mode:
+          y_pred_label  = self.apply_label_y(mlp.predict(X_test).astype("int32"))
+        else:
+          y_pred_label  = self.apply_label_y(mlp.predict(X_test))
+        measures = misc.concordance_measures(metrics.confusion_matrix(y_test_label, y_pred_label), y_test_label, y_pred_label)
 
-      # reports
-      print("Report for the "+str(str_model)+" model: "+measures['string'])
+        # reports
+        print("Report for the "+str(str_model)+" model: "+measures['string'])
 
-      # warning
-      print("finished!")
+        # warning
+        print("finished!")
+      except:
+        pass
 
     ########################################################################
 
@@ -1134,90 +1143,93 @@ class Abf:
 
     # check if model was selected in options
     if self.model is None or self.model == "lstm":
+      try:
 
-      # jump line
-      print()
-      print("Creating the LSTM (Bidirection w/ Encoder-Decoder) with RandomizedSearchCV parameterization model...")
+        # jump line
+        print()
+        print("Creating the LSTM (Bidirection w/ Encoder-Decoder) with RandomizedSearchCV parameterization model...")
 
-      # attributes
-      days_in = self.days_in
-      #days_out = self.days_out
-      in_size = len(self.attributes_selected)
-      #out_size = 1 if self.class_mode else len(self.indices_thresholds)
+        # attributes
+        days_in = self.days_in
+        #days_out = self.days_out
+        in_size = len(self.attributes_selected)
+        #out_size = 1 if self.class_mode else len(self.indices_thresholds)
 
-      # enabled attributes
-      if not self.attribute_lat_lon:
-        in_size = in_size - 2
-      if not self.attribute_doy:
-        in_size = in_size - 1
+        # enabled attributes
+        if not self.attribute_lat_lon:
+          in_size = in_size - 2
+        if not self.attribute_doy:
+          in_size = in_size - 1
 
-      #################################
-      # Custom LSTM Model
-      # Change KerasRegressor
-      class KerasRegressorModified(tf.keras.wrappers.scikit_learn.KerasRegressor):
-        def fit(self, x, y, **kwargs):
-          kwargs = self.filter_sk_params(tf.keras.Sequential.predict_classes, kwargs)
-          sample_weight = np.array([class_weight2[y_] for y_ in np.mean(y.reshape(-1,y.shape[2]), axis=1).astype("int32")]) if class_weight2 else None
-          return super(tf.keras.wrappers.scikit_learn.KerasRegressor, self).fit(x, y, validation_split=0.3, batch_size=int(batch_size/2), sample_weight=sample_weight, **kwargs)
-        def predict(self, x, **kwargs):
-          return self.model.predict(x, **kwargs)
-          
-      def lstm_modified(optimizer='adam', dropout=0.5, size=32, epochs=50):
-        tf.keras.backend.set_floatx('float64')
-        lstm_modified = tf.keras.Sequential(
-          [
-            tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(int(size), activation="tanh", input_shape=(1, X_gridsearch.shape[1]))),
-            tf.keras.layers.Dropout(dropout),
-            tf.keras.layers.RepeatVector(days_in),
-            tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(int(size), activation='tanh', return_sequences=True)),
-            tf.keras.layers.Dropout(dropout),
-            tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(int(size), activation='tanh')),
-            tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1))
-          ]
-        )
-        lstm_modified.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
-        return lstm_modified
+        #################################
+        # Custom LSTM Model
+        # Change KerasRegressor
+        class KerasRegressorModified(tf.keras.wrappers.scikit_learn.KerasRegressor):
+          def fit(self, x, y, **kwargs):
+            kwargs = self.filter_sk_params(tf.keras.Sequential.predict_classes, kwargs)
+            sample_weight = np.array([class_weight2[y_] for y_ in np.mean(y.reshape(-1,y.shape[2]), axis=1).astype("int32")]) if class_weight2 else None
+            return super(tf.keras.wrappers.scikit_learn.KerasRegressor, self).fit(x, y, validation_split=0.3, batch_size=int(batch_size/2), sample_weight=sample_weight, **kwargs)
+          def predict(self, x, **kwargs):
+            return self.model.predict(x, **kwargs)
+            
+        def lstm_modified(optimizer='adam', dropout=0.5, size=32, epochs=50):
+          tf.keras.backend.set_floatx('float64')
+          lstm_modified = tf.keras.Sequential(
+            [
+              tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(int(size), activation="tanh", input_shape=(1, X_gridsearch.shape[1]))),
+              tf.keras.layers.Dropout(dropout),
+              tf.keras.layers.RepeatVector(days_in),
+              tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(int(size), activation='tanh', return_sequences=True)),
+              tf.keras.layers.Dropout(dropout),
+              tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(int(size), activation='tanh')),
+              tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1))
+            ]
+          )
+          lstm_modified.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
+          return lstm_modified
 
-      def lstm_scorer(y_true, y_pred):
-        return -metrics.mean_squared_error(y_true.reshape(1,-1)[0], y_pred.reshape(1,-1)[0])
-      ##################################
+        def lstm_scorer(y_true, y_pred):
+          return -metrics.mean_squared_error(y_true.reshape(1,-1)[0], y_pred.reshape(1,-1)[0])
+        ##################################
 
-      # RandomizedSearchCV
-      random_grid = {
-        'dropout':      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5],
-        'epochs':       [5, 10, 20, 30, 40, 50, 100],
-        'size':         [16, 32, 64, 128, 256, 512],
-        'optimizer':    ['SGD', 'RMSprop', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam'], 
-      }
+        # RandomizedSearchCV
+        random_grid = {
+          'dropout':      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5],
+          'epochs':       [5, 10, 20, 30, 40, 50, 100],
+          'size':         [16, 32, 64, 128, 256, 512],
+          'optimizer':    ['SGD', 'RMSprop', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam'], 
+        }
 
-      # apply RandomizedSearchCV and get best estimator and training the model
-      start_time = time.time()
-      rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=lstm_modified, verbose=1), param_distributions=random_grid, scoring=metrics.make_scorer(lstm_scorer), n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-      rs.fit(X_gridsearch.reshape(X_gridsearch.shape[0], 1, X_gridsearch.shape[1]), y_gridsearch.reshape(y_gridsearch.shape[0], 1, y_gridsearch.shape[1]))
-      lstm = rs.best_estimator_
+        # apply RandomizedSearchCV and get best estimator and training the model
+        start_time = time.time()
+        rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=lstm_modified, verbose=1), param_distributions=random_grid, scoring=metrics.make_scorer(lstm_scorer), n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        rs.fit(X_gridsearch.reshape(X_gridsearch.shape[0], 1, X_gridsearch.shape[1]), y_gridsearch.reshape(y_gridsearch.shape[0], 1, y_gridsearch.shape[1]))
+        lstm = rs.best_estimator_
 
-      # training the model
-      # model name
-      str_model = "LSTM (dropout="+str(rs.best_params_['dropout'])+",epochs="+str(rs.best_params_['epochs'])+",size="+str(rs.best_params_['size'])+",optimizer="+str(rs.best_params_['optimizer'])+")"
-      self.classifiers_runtime[str_model] = time.time() - start_time
-      self.classifiers[str_model] = lstm
+        # training the model
+        # model name
+        str_model = "LSTM (dropout="+str(rs.best_params_['dropout'])+",epochs="+str(rs.best_params_['epochs'])+",size="+str(rs.best_params_['size'])+",optimizer="+str(rs.best_params_['optimizer'])+")"
+        self.classifiers_runtime[str_model] = time.time() - start_time
+        self.classifiers[str_model] = lstm
 
-      # warning
-      print()
-      print("Evaluating the "+str(str_model)+" model...")
+        # warning
+        print()
+        print("Evaluating the "+str(str_model)+" model...")
 
-      # get predictions on test set
-      if self.class_mode:
-        y_pred_label  = self.apply_label_y(lstm.predict(X_test.reshape(X_test.shape[0], 1, X_test.shape[1])).astype("int32"))
-      else:
-        y_pred_label  = self.apply_label_y(lstm.predict(X_test.reshape(X_test.shape[0], 1, X_test.shape[1])))
-      measures      = misc.concordance_measures(metrics.confusion_matrix(y_test_label, y_pred_label), y_test_label, y_pred_label)
+        # get predictions on test set
+        if self.class_mode:
+          y_pred_label  = self.apply_label_y(lstm.predict(X_test.reshape(X_test.shape[0], 1, X_test.shape[1])).astype("int32"))
+        else:
+          y_pred_label  = self.apply_label_y(lstm.predict(X_test.reshape(X_test.shape[0], 1, X_test.shape[1])))
+        measures      = misc.concordance_measures(metrics.confusion_matrix(y_test_label, y_pred_label), y_test_label, y_pred_label)
 
-      # reports
-      print("Report for the "+str(str_model)+" model: "+measures['string'])
+        # reports
+        print("Report for the "+str(str_model)+" model: "+measures['string'])
 
-      # warning
-      print("finished!")
+        # warning
+        print("finished!")
+      except:
+        pass
 
     #########################################################################
 
@@ -1228,48 +1240,51 @@ class Abf:
 
     # check if model was selected in options
     if self.model is None or self.model == "rf":
+      try:
 
-      # jump line
-      print()
-      print("Creating the Random Forest Regressor/Classifier with RandomizedSearchCV parameterization model...")
+        # jump line
+        print()
+        print("Creating the Random Forest Regressor/Classifier with RandomizedSearchCV parameterization model...")
 
-      # RandomizedSearchCV
-      random_grid = {
-        'n_estimators':       np.linspace(1, 2000, num=101, dtype=int, endpoint=True),
-        'max_depth':          np.linspace(1, 30, num=30, dtype=int, endpoint=True),
-        'min_samples_split':  np.linspace(2, 20, num=10, dtype=int, endpoint=True),
-        'min_samples_leaf':   np.linspace(2, 20, num=10, dtype=int, endpoint=True),
-        'max_features':       ['auto', 'sqrt', 1.0, 0.75, 0.50],
-        'bootstrap':          [True, False]
-      }
+        # RandomizedSearchCV
+        random_grid = {
+          'n_estimators':       np.linspace(1, 2000, num=101, dtype=int, endpoint=True),
+          'max_depth':          np.linspace(1, 30, num=30, dtype=int, endpoint=True),
+          'min_samples_split':  np.linspace(2, 20, num=10, dtype=int, endpoint=True),
+          'min_samples_leaf':   np.linspace(2, 20, num=10, dtype=int, endpoint=True),
+          'max_features':       ['auto', 'sqrt', 1.0, 0.75, 0.50],
+          'bootstrap':          [True, False]
+        }
 
-      # apply RandomizedSearchCV and get best estimator and training the model
-      start_time = time.time()
-      if self.class_mode:
-        rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestClassifier(n_jobs=self.n_cores, verbose=1, random_state=self.random_state, class_weight=class_weight), param_distributions=random_grid, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-      else:
-        rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(n_jobs=self.n_cores, verbose=1, random_state=self.random_state), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-      rs.fit(X_gridsearch, y_gridsearch)
-      rf = rs.best_estimator_
+        # apply RandomizedSearchCV and get best estimator and training the model
+        start_time = time.time()
+        if self.class_mode:
+          rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestClassifier(n_jobs=self.n_cores, verbose=1, random_state=self.random_state, class_weight=class_weight), param_distributions=random_grid, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        else:
+          rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(n_jobs=self.n_cores, verbose=1, random_state=self.random_state), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        rs.fit(X_gridsearch, y_gridsearch)
+        rf = rs.best_estimator_
 
-      # model name
-      str_model = "RFRegressor/RFClassifier (n_estimators="+str(rs.best_params_['n_estimators'])+",max_features="+str(rs.best_params_['max_features'])+",max_depth="+str(rs.best_params_['max_depth'])+",min_samples_leaf="+str(rs.best_params_['min_samples_leaf'])+",min_samples_split="+str(rs.best_params_['min_samples_split'])+",bootstrap="+str(rs.best_params_['bootstrap'])+")"
-      self.classifiers_runtime[str_model] = time.time() - start_time
-      self.classifiers[str_model] = rf
+        # model name
+        str_model = "RFRegressor/RFClassifier (n_estimators="+str(rs.best_params_['n_estimators'])+",max_features="+str(rs.best_params_['max_features'])+",max_depth="+str(rs.best_params_['max_depth'])+",min_samples_leaf="+str(rs.best_params_['min_samples_leaf'])+",min_samples_split="+str(rs.best_params_['min_samples_split'])+",bootstrap="+str(rs.best_params_['bootstrap'])+")"
+        self.classifiers_runtime[str_model] = time.time() - start_time
+        self.classifiers[str_model] = rf
 
-      # warning
-      print()
-      print("Evaluating the "+str(str_model)+" model...")
+        # warning
+        print()
+        print("Evaluating the "+str(str_model)+" model...")
 
-      # get predictions on test set
-      y_pred_label  = self.apply_label_y(rf.predict(X_test))
-      measures      = misc.concordance_measures(metrics.confusion_matrix(y_test_label, y_pred_label), y_test_label, y_pred_label)
+        # get predictions on test set
+        y_pred_label  = self.apply_label_y(rf.predict(X_test))
+        measures      = misc.concordance_measures(metrics.confusion_matrix(y_test_label, y_pred_label), y_test_label, y_pred_label)
 
-      # reports
-      print("Report for the "+str(str_model)+" model: "+measures['string'])
+        # reports
+        print("Report for the "+str(str_model)+" model: "+measures['string'])
 
-      # warning
-      print("finished!")
+        # warning
+        print("finished!")
+      except:
+        pass
 
     ########################################################################
 
@@ -1280,71 +1295,74 @@ class Abf:
 
     # check if model was selected in options
     if self.model is None or self.model == "svm":
+      try:
 
-      # jump line
-      print()
-      print("Creating the Support Vector Machine Regressor/Classifier with RandomizedSearchCV parameterization model...")
+        # jump line
+        print()
+        print("Creating the Support Vector Machine Regressor/Classifier with RandomizedSearchCV parameterization model...")
 
-      # RandomizedSearchCV
-      random_grid = [
-        {
-          'estimator__kernel':    ['rbf'],
-          'estimator__gamma':     scipy.stats.expon(scale=.100),
-          'estimator__C':         scipy.stats.expon(scale=1),
-          'estimator__epsilon':   [0.1],
-          'estimator__shrinking': [True, False]
-        },
-        {
-          'estimator__kernel':    ['rbf'],
-          'estimator__gamma':     ['auto','scale'],
-          'estimator__C':         scipy.stats.expon(scale=1),
-          'estimator__epsilon':   [0.1],
-          'estimator__shrinking': [True, False]
-        },
-        {
-          'estimator__kernel':    ['linear'],
-          'estimator__gamma':     ['scale'],
-          'estimator__C':         scipy.stats.expon(scale=1),
-          'estimator__epsilon':   [0.1],
-          'estimator__shrinking': [True, False]
-        }
-      ]
+        # RandomizedSearchCV
+        random_grid = [
+          {
+            'estimator__kernel':    ['rbf'],
+            'estimator__gamma':     scipy.stats.expon(scale=.100),
+            'estimator__C':         scipy.stats.expon(scale=1),
+            'estimator__epsilon':   [0.1],
+            'estimator__shrinking': [True, False]
+          },
+          {
+            'estimator__kernel':    ['rbf'],
+            'estimator__gamma':     ['auto','scale'],
+            'estimator__C':         scipy.stats.expon(scale=1),
+            'estimator__epsilon':   [0.1],
+            'estimator__shrinking': [True, False]
+          },
+          {
+            'estimator__kernel':    ['linear'],
+            'estimator__gamma':     ['scale'],
+            'estimator__C':         scipy.stats.expon(scale=1),
+            'estimator__epsilon':   [0.1],
+            'estimator__shrinking': [True, False]
+          }
+        ]
 
-      # apply RandomizedSearchCV and get best estimator
-      start_time = time.time()
-      if self.class_mode:
-        random_grid_clear = []
-        for g in random_grid:
-          if g['estimator__epsilon']:
-            del g['estimator__epsilon']
-            random_grid_clear.append(g)
-        rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputClassifier(svm.SVC(verbose=0, random_state=self.random_state, class_weight=class_weight2), n_jobs=self.n_cores), param_distributions=random_grid_clear, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-      else:
-        rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputRegressor(svm.SVR(verbose=0), n_jobs=self.n_cores), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-      rs.fit(X_gridsearch, y_gridsearch)
-      svm_model = rs.best_estimator_
-      
-      # model name
-      if self.class_mode:
-        str_model = "SVMRegressor/CLassifier (kernel="+str(rs.best_params_['estimator__kernel'])+",C="+str(rs.best_params_['estimator__C'])+",gamma="+str(rs.best_params_['estimator__gamma'])+",shrinking="+str(rs.best_params_['estimator__shrinking'])+")"
-      else:
-        str_model = "SVMRegressor/CLassifier (kernel="+str(rs.best_params_['estimator__kernel'])+",C="+str(rs.best_params_['estimator__C'])+",gamma="+str(rs.best_params_['estimator__gamma'])+",epsilon="+str(rs.best_params_['estimator__epsilon'])+",shrinking="+str(rs.best_params_['estimator__shrinking'])+")"
-      self.classifiers_runtime[str_model] = time.time() - start_time
-      self.classifiers[str_model] = svm_model
+        # apply RandomizedSearchCV and get best estimator
+        start_time = time.time()
+        if self.class_mode:
+          random_grid_clear = []
+          for g in random_grid:
+            if g['estimator__epsilon']:
+              del g['estimator__epsilon']
+              random_grid_clear.append(g)
+          rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputClassifier(svm.SVC(verbose=0, random_state=self.random_state, class_weight=class_weight2), n_jobs=self.n_cores), param_distributions=random_grid_clear, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        else:
+          rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputRegressor(svm.SVR(verbose=0), n_jobs=self.n_cores), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
+        rs.fit(X_gridsearch, y_gridsearch)
+        svm_model = rs.best_estimator_
+        
+        # model name
+        if self.class_mode:
+          str_model = "SVMRegressor/CLassifier (kernel="+str(rs.best_params_['estimator__kernel'])+",C="+str(rs.best_params_['estimator__C'])+",gamma="+str(rs.best_params_['estimator__gamma'])+",shrinking="+str(rs.best_params_['estimator__shrinking'])+")"
+        else:
+          str_model = "SVMRegressor/CLassifier (kernel="+str(rs.best_params_['estimator__kernel'])+",C="+str(rs.best_params_['estimator__C'])+",gamma="+str(rs.best_params_['estimator__gamma'])+",epsilon="+str(rs.best_params_['estimator__epsilon'])+",shrinking="+str(rs.best_params_['estimator__shrinking'])+")"
+        self.classifiers_runtime[str_model] = time.time() - start_time
+        self.classifiers[str_model] = svm_model
 
-      # warning
-      print()
-      print("Evaluating the "+str(str_model)+" model...")
+        # warning
+        print()
+        print("Evaluating the "+str(str_model)+" model...")
 
-      # get predictions on test set
-      y_pred_label  = self.apply_label_y(svm_model.predict(X_test))
-      measures      = misc.concordance_measures(metrics.confusion_matrix(y_test_label, y_pred_label), y_test_label, y_pred_label)
+        # get predictions on test set
+        y_pred_label  = self.apply_label_y(svm_model.predict(X_test))
+        measures      = misc.concordance_measures(metrics.confusion_matrix(y_test_label, y_pred_label), y_test_label, y_pred_label)
 
-      # reports
-      print("Report for the "+str(str_model)+" model: "+measures['string'])
+        # reports
+        print("Report for the "+str(str_model)+" model: "+measures['string'])
 
-      # warning
-      print("finished!")
+        # warning
+        print("finished!")
+      except:
+        pass
 
     ########################################################################
 
@@ -1360,6 +1378,13 @@ class Abf:
     # attributes
     attributes        = [a for a in self.attributes if a != 'cloud']
     attributes_clear  = [a for a in self.attributes_clear if a != 'cloud']
+
+    # dictionary of attributes
+    dict_attributes = {}
+    dict_attributes[0] = 'lat'
+    dict_attributes[1] = 'lon'
+    for i, attribute in enumerate(attributes_clear):
+      dict_attributes[i+2] = attribute
 
     # check folder exists
     if not os.path.exists(folder):
@@ -1389,7 +1414,7 @@ class Abf:
     for date in self.classification_dates:
       # extract pixels from image
       # check if is good image (with pixels)
-      df_classification_ = self.extract_image_pixels(image=self.extract_image_from_collection(date=date), date=date)
+      df_classification_ = self.extract_image_pixels(image=self.extract_image_from_collection(date=date), date=date, disable_threshold=True)
       if df_classification_.size > 0:
         df_classification = self.merge_timeseries(df_list=[df_classification, df_classification_])
 
@@ -1402,7 +1427,7 @@ class Abf:
     for date in self.predict_dates:
       # extract pixels from image
       # check if is good image (with pixels)
-      df_predict_ = self.extract_image_pixels(image=self.extract_image_from_collection(date=date, apply_attributes=False, convolve_force_disabled=True), date=date, apply_attributes=False)
+      df_predict_ = self.extract_image_pixels(image=self.extract_image_from_collection(date=date, apply_attributes=False, convolve_force_disabled=True), date=date, apply_attributes=False, disable_threshold=True)
       if df_predict_.size > 0:
         df_predict = self.merge_timeseries(df_list=[df_predict, df_predict_])
 
@@ -1510,8 +1535,8 @@ class Abf:
                        Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='orange',fill=True),
                        Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='red',fill=True),
                        Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='darkred',fill=True),
-                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='gray',fill=True),
-                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='black',fill=True)]
+                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='gray',fill=True)]
+                       #Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='black',fill=True)]
 
     # legends
     legends_colors3 = [Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='cyan',fill=True),
@@ -1521,7 +1546,8 @@ class Abf:
     
     # legends captions
     legends_colors_captions   = ['No agreement', 'Low agreement', 'Average agreement', 'High agreement', 'Totally in agreement', 'Land/Cloud/Shadow']
-    legends_colors_captions2  = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%', 'Land/Cloud/Shadow', 'Indetermined']
+    #legends_colors_captions2  = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%', 'Land/Cloud/Shadow', 'Indetermined']
+    legends_colors_captions2  = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%', 'Land/Cloud/Shadow']
     legends_colors_captions3  = ['Regular', 'Anomaly', 'Land/Cloud/Shadow', 'Indetermined']
 
     # go through each classifier
@@ -1552,7 +1578,7 @@ class Abf:
             features = 1
             df_new = df.rename(columns={0:'lat', 1:'lon', 2:'label'})[['lat','lon','label']]
           else:
-            df_new = df.rename(columns={0:'lat', 1:'lon', 2:'ndwi', 3:'ndvi', 4:'sabi', 5:'fai'})[['lat','lon','ndwi','ndvi','sabi','fai']]
+            df_new = df.rename(columns=dict_attributes)[['lat','lon']+attributes_clear]
 
           # initiate absence columns
           df_new['date'] = df_classification['date'].max() + td(days=1)
@@ -1596,6 +1622,39 @@ class Abf:
 
       # save time
       self.classifiers_runtime[model] = self.classifiers_runtime[model] + (time.time() - start_time)
+
+      # save predictions
+      c_model = 0
+      j = 0
+      for i, date in enumerate(self.predict_dates):
+        array = [0,1]
+        if self.class_mode:
+          array = array + [i+len(array)]
+          df_pred = df[array].copy(deep=True).reset_index()
+          df_pred.rename(columns={0:'lat', 1:'lon', i+2:'label'}, inplace=True)
+        else:
+
+          # array to select columns
+          j = j + len(array) if j == 0 else j + (len(array)*2)
+          array = array + list(range(j, j+len(attributes_clear)))
+
+          # dictionary of attributes
+          dict_attributes_ = {}
+          dict_attributes_[0] = 'lat'
+          dict_attributes_[1] = 'lon'
+          for w, attribute in enumerate(attributes_clear):
+            dict_attributes_[j+w] = attribute
+
+          # create dataframe
+          df_pred = df[array].copy(deep=True).reset_index()
+          df_pred.rename(columns=dict_attributes_, inplace=True)
+          df_pred = self.apply_label(df_pred).drop(attributes_clear,axis=1)
+        df_pred.rename(columns={'label':'label_predicted_'+str(i)}, inplace=True)
+        if not model in self.predictions:
+          self.predictions[model] = df_pred
+        else:
+          self.predictions[model] = self.predictions[model].join(df_pred.drop(['lat','lon','index'],axis=1))
+      c_model += 1
 
       # model str 2
       model_short = ''
@@ -1691,7 +1750,7 @@ class Abf:
 
             # get date pixels
             df_true = df_predict[(df_predict['date']==date) & (df_predict['cloud']!=self.dummy)]
-            df_true['color'] = "black"
+            df_true['color'] = "green"
             count_pixels = len(df_true)
 
             # fix label value
@@ -1707,6 +1766,9 @@ class Abf:
                   pct = int((grid_sum/len(df_grid)) * 100)
                   df_true.loc[(df_true["row"]==row) & (df_true["column"]==column), 'color'] = color_map2[pct][0]
 
+            # fix label value again
+            df_true.loc[(df_true["label"]==-1), 'label'] = 0
+
             # plot
             c = fig.add_subplot(3,len(self.predict_dates),plot_count)
             c.set_title("Ground Truth ("+str(self.grid_size)+"x"+str(self.grid_size)+")", fontdict = {'fontsize' : 4.5})
@@ -1717,9 +1779,9 @@ class Abf:
             c.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
             c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
             if count_pixels > 0:
-              c.scatter(df_true[df_true["label"]!=-1]['lat'], df_true[df_true["label"]!=-1]['lon'], marker='s', s=markersize_scatter, c=df_true[df_true["label"]!=-1]['color'].values, edgecolors='none')
+              c.scatter(df_true['lat'], df_true['lon'], marker='s', s=markersize_scatter, c=df_true['color'].values, edgecolors='none')
               c.scatter(df_predict_clouds[(df_predict_clouds['date']==date)]['lat'], df_predict_clouds[(df_predict_clouds['date']==date)]['lon'], marker='s', s=markersize_scatter, c="gray", edgecolors='none')
-              c.scatter(df_true[df_true["label"]==-1]['lat'], df_true[df_true["label"]==-1]['lon'], marker='s', s=markersize_scatter, c="black", edgecolors='none')
+              #c.scatter(df_true[df_true["label"]==-1]['lat'], df_true[df_true["label"]==-1]['lon'], marker='s', s=markersize_scatter, c="black", edgecolors='none')
             c.margins(x=0,y=0)
             plot_count += 1
 
@@ -1740,7 +1802,7 @@ class Abf:
             # get date pixels
             df_true       = df_predict[(df_predict['date']==date) & (df_predict['cloud']!=self.dummy)]
             count_pixels  = len(df_true)
-            color         = "black"
+            color         = "green"
             pct           = 0.0
 
             # fix label value
@@ -1751,6 +1813,9 @@ class Abf:
             if len(df_true[df_true["label"]!=-1])>0:
               pct = int((df_true[df_true["label"]!=-1]['label'].sum()/len(df_true)) * 100)
               color = color_map2[pct][0]
+
+            # fix label again
+            df_true.loc[(df_true["label"]==-1), 'label'] = 0
 
             # plot
             c = fig.add_subplot(3,len(self.predict_dates),plot_count)
@@ -1773,14 +1838,15 @@ class Abf:
           
           # create support dataframes
           df_true = df_predict[(df_predict['date']==date)][['lat','lon','row','column','cloud','label']].copy(deep=True).reset_index()
-          if self.class_mode:
-            df_pred = df[[0,1,i+2]].copy(deep=True).reset_index()
-            df_pred.rename(columns={0:'lat', 1:'lon', i+2:'label'}, inplace=True)
-          else:
-            df_pred = df[[0,1,i+2,i+3,i+4,i+5]].copy(deep=True).reset_index()
-            df_pred.rename(columns={0:'lat', 1:'lon', i+2:'ndwi', i+3:'ndvi', i+4:'sabi', i+5:'fai'}, inplace=True)
-            df_pred = self.apply_label(df_pred)
-          df_pred.rename(columns={'label':'label_predicted'}, inplace=True)
+          # if self.class_mode:
+          #   df_pred = df[[0,1,i+2]].copy(deep=True).reset_index()
+          #   df_pred.rename(columns={0:'lat', 1:'lon', i+2:'label'}, inplace=True)
+          # else:
+          #   df_pred = df[[0,1,i+2,i+3,i+4,i+5]].copy(deep=True).reset_index()
+          #   df_pred.rename(columns={0:'lat', 1:'lon', i+2:'ndwi', i+3:'ndvi', i+4:'sabi', i+5:'fai'}, inplace=True)
+          #   df_pred = self.apply_label(df_pred)
+          # df_pred.rename(columns={'label':'label_predicted'}, inplace=True)
+          df_pred = self.predictions[model][['lat','lon','label_predicted_'+str(i)]].copy().rename(columns={'label_predicted_'+str(i):'label_predicted'})
           count_pixels = len(df_true)
 
           # merge dataframes
@@ -1812,10 +1878,14 @@ class Abf:
             print("[Pixel] Evaluating prediction for date "+str(date.strftime("%Y-%m-%d"))+"...")
 
             # labels arrays
-            df_merge_ = df_merge[((df_merge['label']==0) | (df_merge['label']==len(attributes_clear))) & ((df_merge['label_predicted']==0) | (df_merge['label_predicted']==len(attributes_clear)))]
+            #df_merge_ = df_merge[((df_merge['label']==0) | (df_merge['label']==len(attributes_clear))) & ((df_merge['label_predicted']==0) | (df_merge['label_predicted']==len(attributes_clear)))]
+            df_merge_ = df_merge[((df_merge['label']==0) | (df_merge['label']==len(attributes_clear)))]
             if len(df_merge_) > 0:
-                y_pred   = df_merge_['label_predicted'].values.reshape((-1, 1))
-                y_true   = df_merge_['label'].values.reshape((-1, 1))
+              y_pred   = df_merge_['label_predicted'].values.reshape((-1, 1))
+              y_true   = df_merge_['label'].values.reshape((-1, 1))
+            else:
+              y_pred = [0]
+              y_true = [len(attributes_clear)]
 
             # report
             measures = misc.concordance_measures(metrics.confusion_matrix(y_true, y_pred), y_true, y_pred)
@@ -1833,7 +1903,7 @@ class Abf:
               'runtime':          str(self.classifiers_runtime[model]),
               'days_threshold':   str(self.days_threshold), 
               'grid_size':        str(self.grid_size),
-              'size_train':       str(self.df_train[0].shape),
+              'size_train':       str("D="+str(self.df_train[0].shape)+";X="+str(self.df_randomizedsearch[0].shape)+";y="+str(self.df_randomizedsearch[1].shape)),
               'size_dates':       str(len(self.dates_timeseries_interval)),
               'scaler':           str(self.scaler_str),
               'morph_op':         str(self.morph_op),
@@ -1884,7 +1954,7 @@ class Abf:
             if count_pixels > 0:
               c.scatter(df_merge['lat'], df_merge['lon'], marker='s', s=markersize_scatter, c=df_merge['color_predicted'].values, edgecolors='none')
             if i == len(self.predict_dates)-1:
-              c.legend(legends_colors3, legends_colors_captions3, loc='upper center', bbox_to_anchor=(-0.18, -0.28), ncol=4, fontsize='x-small', fancybox=True, shadow=True)
+              c.legend(legends_colors3, legends_colors_captions3, loc='upper center', bbox_to_anchor=(-0.11, -0.24), ncol=4, fontsize='x-small', fancybox=True, shadow=True)
             c.margins(x=0,y=0)
             plot_count += 1
 
@@ -1899,26 +1969,31 @@ class Abf:
             print("[Grid] Evaluating prediction for date "+str(date.strftime("%Y-%m-%d"))+"...")
 
             # labels arrays
-            df_merge['class']             = -1
-            df_merge['color']             = "black"
-            df_merge['class_predicted']   = -1
-            df_merge['color_predicted']   = "black"
+            df_merge['class']             = 0
+            df_merge['color']             = "green"
+            df_merge['class_predicted']   = 0
+            df_merge['color_predicted']   = "green"
 
             # fix label value
             df_merge.loc[(df_merge["label"]>0) & (df_merge["label"]<len(attributes_clear)), 'label'] = -1
             df_merge.loc[(df_merge["label"]==len(attributes_clear)), 'label'] = 1   
-            df_merge.loc[(df_merge["label_predicted"]>0) & (df_merge["label_predicted"]<len(attributes_clear)), 'label'] = -1
-            df_merge.loc[(df_merge["label_predicted"]==len(attributes_clear)), 'label_predicted'] = 1   
+            df_merge.loc[(df_merge["label_predicted"]>0) & (df_merge["label_predicted"]<len(attributes_clear)), 'label_predicted'] = -1
+            df_merge.loc[(df_merge["label_predicted"]==len(attributes_clear)), 'label_predicted'] = 1
+            # df_merge.loc[(df_merge["label"]<len(attributes_clear)), 'label'] = 0
+            # df_merge.loc[(df_merge["label"]==len(attributes_clear)), 'label'] = 1   
+            # df_merge.loc[(df_merge["label_predicted"]<len(attributes_clear)), 'label_predicted'] = 0
+            # df_merge.loc[(df_merge["label_predicted"]==len(attributes_clear)), 'label_predicted'] = 1
 
             # filter edge values
-            df_merge_ = df_merge[(df_merge['label']!=-1) & (df_merge['label_predicted']!=-1)] 
+            #df_merge_ = df_merge[(df_merge['label']!=-1) & (df_merge['label_predicted']!=-1)]
+            df_merge_ = df_merge[(df_merge['label']!=-1)]
             
             # add class
             for row in range(1,self.grid_size+1):
               for column in range(1,self.grid_size+1):
 
                 # select grid
-                df_grid = df_merge_[(df_merge_["row"]==row) & (df_merge_["column"]==column)]
+                df_grid = df_merge[(df_merge["row"]==row) & (df_merge["column"]==column)]
 
                 # true
                 if len(df_grid)>0:
@@ -1933,15 +2008,23 @@ class Abf:
                 if len(df_grid)>0:
                   grid_sum = df_grid["label_predicted"].sum()
                   pct = int((grid_sum/len(df_grid)) * 100)
+                  pct = 0 if pct < 0 else pct
                   df_merge.loc[(df_merge["row"]==row) & (df_merge["column"]==column), 'class_predicted'] = pct
                   df_merge.loc[(df_merge["row"]==row) & (df_merge["column"]==column), 'color_predicted'] = color_map2[pct][0]
                   df_merge_.loc[(df_merge_["row"]==row) & (df_merge_["column"]==column), 'class_predicted'] = pct
                   df_merge_.loc[(df_merge_["row"]==row) & (df_merge_["column"]==column), 'color_predicted'] = color_map2[pct][0]
 
+            # fix label values again
+            df_merge.loc[(df_merge["label"]==-1), 'label'] = 0
+            df_merge.loc[(df_merge["label_predicted"]==-1), 'label_predicted'] = 0
+
             # measures
             if len(df_merge_) > 0:
               y_pred = [color_encoder[y] for y in df_merge_['color'].values]
               y_true = [color_encoder[y] for y in df_merge_['color_predicted'].values]
+            else:
+              y_pred = [0]
+              y_true = [len(attributes_clear)]
               
             # report
             measures = misc.concordance_measures(metrics.confusion_matrix(y_true, y_pred), y_true, y_pred)
@@ -1959,7 +2042,7 @@ class Abf:
               'runtime':          str(self.classifiers_runtime[model]),
               'days_threshold':   str(self.days_threshold), 
               'grid_size':        str(self.grid_size),
-              'size_train':       str(self.df_train[0].shape),
+              'size_train':       str("D="+str(self.df_train[0].shape)+";X="+str(self.df_randomizedsearch[0].shape)+";y="+str(self.df_randomizedsearch[1].shape)),
               'size_dates':       str(len(self.dates_timeseries_interval)),
               'scaler':           str(self.scaler_str),
               'morph_op':         str(self.morph_op),
@@ -2008,10 +2091,10 @@ class Abf:
             c.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
             c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
             if count_pixels > 0:
-              c.scatter(df_merge[df_merge["label_predicted"]!=-1]['lat'], df_merge[df_merge["label_predicted"]!=-1]['lon'], marker='s', s=markersize_scatter, c=df_merge[df_merge["label_predicted"]!=-1]['color_predicted'].values, edgecolors='none')
-              c.scatter(df_merge[df_merge["label_predicted"]==-1]['lat'], df_merge[df_merge["label_predicted"]==-1]['lon'], marker='s', s=markersize_scatter, c="black", edgecolors='none')
+              c.scatter(df_merge['lat'], df_merge['lon'], marker='s', s=markersize_scatter, c=df_merge['color_predicted'].values, edgecolors='none')
+              #c.scatter(df_merge[df_merge["label_predicted"]==-1]['lat'], df_merge[df_merge["label_predicted"]==-1]['lon'], marker='s', s=markersize_scatter, c="black", edgecolors='none')
             if i == len(self.predict_dates)-1:
-              c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.28, -0.28), ncol=4, fontsize='x-small', fancybox=True, shadow=True)
+              c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.22, -0.24), ncol=3, fontsize='x-small', fancybox=True, shadow=True)
             c.margins(x=0,y=0)
             plot_count += 1
 
@@ -2036,27 +2119,42 @@ class Abf:
             print("[Scene] Evaluating prediction for date "+str(date.strftime("%Y-%m-%d"))+"...")
 
             # labels arrays
-            color = "black"
+            color = "green"
+            pct = 0
 
             # fix label value
             df_merge.loc[(df_merge["label"]>0) & (df_merge["label"]<len(attributes_clear)), 'label'] = -1
             df_merge.loc[(df_merge["label"]==len(attributes_clear)), 'label'] = 1   
-            df_merge.loc[(df_merge["label_predicted"]>0) & (df_merge["label_predicted"]<len(attributes_clear)), 'label'] = -1
-            df_merge.loc[(df_merge["label_predicted"]==len(attributes_clear)), 'label_predicted'] = 1   
+            df_merge.loc[(df_merge["label_predicted"]>0) & (df_merge["label_predicted"]<len(attributes_clear)), 'label_predicted'] = -1
+            df_merge.loc[(df_merge["label_predicted"]==len(attributes_clear)), 'label_predicted'] = 1
+            # df_merge.loc[(df_merge["label"]<len(attributes_clear)), 'label'] = 0
+            # df_merge.loc[(df_merge["label"]==len(attributes_clear)), 'label'] = 1   
+            # df_merge.loc[(df_merge["label_predicted"]<len(attributes_clear)), 'label'] = 0
+            # df_merge.loc[(df_merge["label_predicted"]==len(attributes_clear)), 'label_predicted'] = 1    
 
             # filter edge values
-            df_merge_ = df_merge[(df_merge['label']!=-1) & (df_merge['label_predicted']!=-1)] 
+            #df_merge_ = df_merge[(df_merge['label']!=-1) & (df_merge['label_predicted']!=-1)]
+            df_merge_ = df_merge[(df_merge['label']!=-1)]
 
             # true
             if len(df_merge_)>0:
               pct     = int((df_merge_['label'].sum()/len(df_merge)) * 100)
               y_true  = [color_encoder[color_map2[pct][0]]]
+            else:
+              y_true = [len(attributes_clear)]
             
             # pred
             if len(df_merge_)>0:
               pct     = int((df_merge_['label_predicted'].sum()/len(df_merge)) * 100)
+              pct     = 0 if pct < 0 else pct
               y_pred  = [color_encoder[color_map2[pct][0]]]
               color   = color_map2[pct][0]
+            else:
+              y_pred = [0]
+
+            # fix label again
+            df_merge.loc[(df_merge["label"]==-1), 'label'] = 0
+            df_merge.loc[(df_merge["label_predicted"]==-1), 'label_predicted'] = 0
 
             # report
             measures = misc.concordance_measures(metrics.confusion_matrix(y_true, y_pred), y_true, y_pred)
@@ -2074,7 +2172,7 @@ class Abf:
               'runtime':          str(self.classifiers_runtime[model]),
               'days_threshold':   str(self.days_threshold), 
               'grid_size':        str(self.grid_size),
-              'size_train':       str(self.df_train[0].shape),
+              'size_train':       str("D="+str(self.df_train[0].shape)+";X="+str(self.df_randomizedsearch[0].shape)+";y="+str(self.df_randomizedsearch[1].shape)),
               'size_dates':       str(len(self.dates_timeseries_interval)),
               'scaler':           str(self.scaler_str),
               'morph_op':         str(self.morph_op),
@@ -2123,10 +2221,10 @@ class Abf:
             c.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
             c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
             if count_pixels > 0:
-              c.scatter(df_merge[df_merge["label_predicted"]!=-1]['lat'], df_merge[df_merge["label_predicted"]!=-1]['lon'], marker='s', s=markersize_scatter, c=color, edgecolors='none')
-              c.scatter(df_merge[df_merge["label_predicted"]==-1]['lat'], df_merge[df_merge["label_predicted"]==-1]['lon'], marker='s', s=markersize_scatter, c="black", edgecolors='none')
+              c.scatter(df_merge['lat'], df_merge['lon'], marker='s', s=markersize_scatter, c=color, edgecolors='none')
+              #c.scatter(df_merge[df_merge["label_predicted"]==-1]['lat'], df_merge[df_merge["label_predicted"]==-1]['lon'], marker='s', s=markersize_scatter, c="black", edgecolors='none')
             if i == len(self.predict_dates)-1:
-              c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.28, -0.28), ncol=4, fontsize='x-small', fancybox=True, shadow=True)
+              c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.22, -0.24), ncol=3, fontsize='x-small', fancybox=True, shadow=True)
             c.margins(x=0,y=0)
             plot_count += 1
 
@@ -2141,6 +2239,136 @@ class Abf:
 
     # warning
     print('finished!')
+
+
+  # validate imagem using a ROI from GEE
+  # GEE Code Console: https://code.earthengine.google.com
+  def validate_using_roi(self, path: str,  rois: list, labels: list = []):
+
+    # check if there are one or predictions
+    if not self.predictions is None and len(self.predictions)>0:
+
+      # atributes
+      df_columns   = ['pixel', 'lat', 'lon', 'label']
+      df_true      = pd.DataFrame(columns=df_columns)
+
+      # go over each ML model
+      for model in self.predictions:
+
+        # go over each predicted date
+        for i, date in enumerate(self.predict_dates):
+
+          # go over each roi
+          for j, roi in enumerate(rois):
+
+            # replace text in roi with date and sensor
+            roi = roi.replace("date", date.strftime("%Y-%m-%d")).replace("sensor", self.sensor)
+
+            # extract FeatureCollection from roi selected through the GEE Code Console and process image
+            print()
+            print("[ROI] '"+path+"/"+roi+"' with label '"+str(labels[j])+"'...")
+
+            # get each geometry pixel values
+            lons_lats_attributes  = np.array([]).reshape(0, 3)
+            has_roi = False
+            try:
+
+              # go through each geometry and get pixels
+              for geometry in self.splitted_geometry:
+                clip                            = self.clip_image(image=ee.Image(2).toByte().paint(ee.FeatureCollection(path+'/'+roi), labels[j]), geometry=geometry, scale=self.scale)
+                geometry_lons_lats_attributes   = gee.extract_latitude_longitude_pixel(image=clip, geometry=geometry, bands=['constant'], scale=self.scale)
+                lons_lats_attributes            = np.vstack((lons_lats_attributes, geometry_lons_lats_attributes))
+
+              # concatenate geometry pixel values
+              extra_attributes     = np.array(list(zip(range(0,len(lons_lats_attributes)))))
+              lons_lats_attributes = np.hstack((extra_attributes, lons_lats_attributes))
+
+              # append new data from roi to dataframe
+              df_true = df_true.append(pd.DataFrame(data=lons_lats_attributes,columns=df_columns).infer_objects(), ignore_index = True)
+
+              # set that roi was found
+              has_roi = True
+
+            # error: no data in ROI or it does not exist
+            except Exception as e:
+              has_roi = False
+              print("Error while extracting roi pixels: "+str(e))
+
+          # roi was found?
+          if has_roi:
+
+            # fix columns labels
+            df_true = df_true.apply(pd.to_numeric, errors='ignore')
+            
+            # prepare the datas
+            df_true = df_true[df_true['label']!=2.0][['pixel', 'lat', 'lon', 'label']]
+
+            # get rois label list
+            array_labels = df_true.groupby('label').count().values[:,0].astype(str)
+
+            # prepare model data
+            df_pred         = self.predictions[model][['lat', 'lon', 'label_predicted_'+str(i)]].rename(columns={'label_predicted_'+str(i): 'label'})
+
+            # merge true and pred dataframes, finding matched pair of latitude and longitude
+            merged          = pd.merge(df_true, df_pred, on=['lat','lon'], how='inner', suffixes=('_true', '_pred'))
+
+            # get predictions on test set
+            y_true, y_pred  = merged['label_true'].values.astype(int), merged['label_pred'].values.astype(int)
+            measures        = misc.concordance_measures(metrics.confusion_matrix(y_true, y_pred), y_true, y_pred)
+
+            # reports
+            print(measures['string'])
+
+            # add results - pixel
+            self.df_results = self.df_results.append({
+              'model':            str(model),
+              'type':             'roi',
+              'sensor':           str(self.sensor),
+              'path':             str(self.path),
+              'date_predicted':   date.strftime("%Y-%m-%d"),
+              'date_execution':   dt.now().strftime("%Y-%m-%d"),
+              'time_execution':   dt.now().strftime("%H:%M:%S"),
+              'runtime':          str(self.classifiers_runtime[model]),
+              'days_threshold':   str(self.days_threshold), 
+              'grid_size':        str(self.grid_size),
+              'size_train':       str(array_labels),
+              'size_dates':       str(len(self.dates_timeseries_interval)),
+              'scaler':           str(self.scaler_str),
+              'morph_op':         str(self.morph_op),
+              'morph_op_iters':   str(self.morph_op_iters),
+              'convolve':         str(self.convolve),
+              'convolve_radius':  str(self.convolve_radius),
+              'days_in':          str(self.days_in), 
+              'days_out':         str(self.days_out), 
+              'fill_missing':     str(self.fill_missing), 
+              'remove_dummies':   str(self.remove_dummies), 
+              'shuffle':          str(self.shuffle), 
+              'reducer':          str(self.reducer), 
+              'normalized':       str(self.normalized), 
+              'class_mode':       str(self.class_mode), 
+              'class_weight':     str(self.class_weight), 
+              'propagate':        str(self.propagate), 
+              'rs_train_size':    str(self.rs_train_size), 
+              'rs_iter':          str(self.rs_iter), 
+              'pca_size':         str(self.pca_size),
+              'acc':              float(measures["acc"]),
+              'bacc':             float(measures["bacc"]),
+              'kappa':            float(measures["kappa"]),
+              'vkappa':           float(measures["vkappa"]),
+              'tau':              float(measures["tau"]),
+              'vtau':             float(measures["vtau"]),
+              'mcc':              float(measures["mcc"]),
+              'f1score':          float(measures["f1score"]),
+              'rmse':             float(measures["rmse"]),
+              'mae':              float(measures["mae"]),
+              'tp':               int(measures["tp"]),
+              'tn':               int(measures["tn"]),
+              'fp':               int(measures["fp"]),
+              'fn':               int(measures["fn"])
+            }, ignore_index=True)
+
+    # warning
+    print("finished!")
 
 
   # save grid plot

@@ -37,8 +37,14 @@ def concordance_measures(cm, y_true, y_pred):
   f1score       = metrics.f1_score(y_true, y_pred, average='weighted')
   kappa         = metrics.cohen_kappa_score(y_true, y_pred)
   mcc           = metrics.matthews_corrcoef(y_true, y_pred)
-  rmse          = math.sqrt(metrics.mean_squared_error(y_true, y_pred))
-  mae           = metrics.mean_absolute_error(y_true, y_pred)
+  try:
+    rmse = math.sqrt(metrics.mean_squared_error(y_true, y_pred))
+  except:
+    rmse = 0
+  try:
+    mae = metrics.mean_absolute_error(y_true, y_pred)
+  except:
+    mae = 0
   tau, p_value  = scipy.stats.kendalltau(y_true, y_pred)
   
   # marg
