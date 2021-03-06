@@ -10,12 +10,13 @@ CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ARRAYS - FULL
 declare -a DAYS_THRESHOLD=("90" "180" "365" "730" "1825")
-declare -a DAYS_IN_OUT=("--days_in=1 --days_out=5" "--days_in=3 --days_out=5" "--days_in=5 --days_out=5")
+declare -a DAYS_IN_OUT=("--days_in=3 --days_out=5" "--days_in=5 --days_out=5")
+declare -a GRID_SIZE=("--grid_size=3" "--grid_size=6" "--grid_size=9")
 declare -a MODELS=("rf" "svm" "mlp" "lstm")
-declare -a FILLS_MISSING=("--fill_missing=dummy", "--fill_missing=dummy --remove_dummies" "--fill_missing=ffill" "--fill_missing=bfill" "--fill_missing=time" "--fill_missing=linear")
-declare -a REDUCER=("--reducer --pca_size=0.900" "--reducer --pca_size=0.950" "--reducer --pca_size=0.990")
+declare -a FILLS_MISSING=("--fill_missing=ffill" "--fill_missing=time" "--fill_missing=linear")
+declare -a REDUCER=("" "--reducer --pca_size=0.900" "--reducer --pca_size=0.950" "--reducer --pca_size=0.990")
 declare -a CLASS_MODE=("--class_mode" "--class_mode --class_weight")
-declare -a NORMALIZE=("--non_normalized")
+declare -a NORMALIZE=("")
 declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01" "--rs_train_size=0.025" "--rs_train_size=0.05" "--rs_train_size=0.10")
 declare -a RS_ITERS=("--rs_iter=25" "--rs_iter=50" "--rs_iter=100" "--rs_iter=500")
 
@@ -85,15 +86,18 @@ do
 			do
 				for days_in_out in "${DAYS_IN_OUT[@]}"
 				do
-					for reducer in "${REDUCER[@]}"
+					for grid_size in "${GRID_SIZE[@]}"
 					do
-						for fill_missing in "${FILLS_MISSING[@]}"
+						for reducer in "${REDUCER[@]}"
 						do
-							for model in "${MODELS[@]}"
+							for fill_missing in "${FILLS_MISSING[@]}"
 							do
-								for normalized in "${NORMALIZE[@]}"
+								for model in "${MODELS[@]}"
 								do
-									eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter"
+									for normalized in "${NORMALIZE[@]}"
+									do
+										eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter"
+									done
 								done
 							done
 						done

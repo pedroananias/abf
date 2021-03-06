@@ -997,7 +997,8 @@ class Abf:
       X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, train_size=0.95, shuffle=True, random_state=self.random_state)
 
     # check if user defined to apply reducer
-    if not self.model is None and not self.model == "lstm" and self.reducer:
+    #if not self.model is None and not self.model == "lstm" and self.reducer:
+    if self.reducer:
       X_train, X_test   = self.apply_reducer(X_train, X_test)
 
     # building array of final dataframes splitting by train and test sets
@@ -1253,7 +1254,7 @@ class Abf:
           'min_samples_split':  np.linspace(2, 20, num=10, dtype=int, endpoint=True),
           'min_samples_leaf':   np.linspace(2, 20, num=10, dtype=int, endpoint=True),
           'max_features':       ['auto', 'sqrt', 1.0, 0.75, 0.50],
-          'bootstrap':          [True, False]
+          'bootstrap':          [True]
         }
 
         # apply RandomizedSearchCV and get best estimator and training the model
@@ -1308,21 +1309,21 @@ class Abf:
             'estimator__gamma':     scipy.stats.expon(scale=.100),
             'estimator__C':         scipy.stats.expon(scale=1),
             'estimator__epsilon':   [0.1],
-            'estimator__shrinking': [True, False]
+            'estimator__shrinking': [True]
           },
           {
             'estimator__kernel':    ['rbf'],
             'estimator__gamma':     ['auto','scale'],
             'estimator__C':         scipy.stats.expon(scale=1),
             'estimator__epsilon':   [0.1],
-            'estimator__shrinking': [True, False]
+            'estimator__shrinking': [True]
           },
           {
             'estimator__kernel':    ['linear'],
             'estimator__gamma':     ['scale'],
             'estimator__C':         scipy.stats.expon(scale=1),
             'estimator__epsilon':   [0.1],
-            'estimator__shrinking': [True, False]
+            'estimator__shrinking': [True]
           }
         ]
 
@@ -1473,7 +1474,8 @@ class Abf:
 
     # splitting training and testing sets
     X                           = self.scaler.transform(df_classification_proc[in_labels].values.reshape((-1, len(in_labels))))
-    if not self.model is None and not self.model == "lstm" and self.reducer:
+    #if not self.model is None and not self.model == "lstm" and self.reducer:
+    if self.reducer:
       X = self.reducer.transform(X)
 
     # Final statistics
