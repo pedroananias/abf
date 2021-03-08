@@ -9,12 +9,12 @@ SCRIPT="script.py"
 CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ARRAYS - FULL
-declare -a DAYS_THRESHOLD=("90" "180" "365" "730" "1825")
-declare -a DAYS_IN_OUT=("--days_in=3 --days_out=5" "--days_in=5 --days_out=5")
-declare -a GRID_SIZE=("--grid_size=3" "--grid_size=6" "--grid_size=9")
+declare -a DAYS_THRESHOLD=("180" "365" "730" "1825")
+declare -a DAYS_IN_OUT=("--days_in=5 --days_out=5")
+declare -a GRID_SIZE=("--grid_size=6" "--grid_size=9")
 declare -a MODELS=("rf" "svm" "mlp" "lstm")
 declare -a FILLS_MISSING=("--fill_missing=ffill" "--fill_missing=time" "--fill_missing=linear")
-declare -a REDUCER=("" "--reducer --pca_size=0.900" "--reducer --pca_size=0.950" "--reducer --pca_size=0.990")
+declare -a REDUCER=("--reducer --pca_size=0.950")
 declare -a CLASS_MODE=("--class_mode" "--class_mode --class_weight")
 declare -a NORMALIZE=("")
 declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01" "--rs_train_size=0.025" "--rs_train_size=0.05" "--rs_train_size=0.10")
