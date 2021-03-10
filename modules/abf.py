@@ -103,7 +103,7 @@ class Abf:
   # dataframes
   df_columns                  = ['pixel','index','row','column','date','doy','lat','lon']+attributes
   df_columns_clear            = ['pixel','index','row','column','date','doy','lat','lon']+attributes_clear
-  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'tp', 'tn', 'fp', 'fn']
+  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'attribute_lat_lon', 'attribute_doy', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'tp', 'tn', 'fp', 'fn']
   df_timeseries               = None
   df_timeseries_scene         = None
   df_timeseries_grid          = None
@@ -1034,7 +1034,7 @@ class Abf:
     X_train, y_train                    = self.df_train
     X_test, y_test                      = self.df_test
     X_gridsearch, _, y_gridsearch, _    = model_selection.train_test_split(X_train, y_train, train_size=self.rs_train_size, random_state=self.random_state)
-    X_gridsearch_, _, y_gridsearch_, _  = model_selection.train_test_split(X_train, y_train, train_size=self.rs_train_size/20, random_state=self.random_state)
+    X_gridsearch_, _, y_gridsearch_, _  = model_selection.train_test_split(X_train, y_train, train_size=10000, random_state=self.random_state)
 
     # fill randomized search dataframe
     self.df_randomizedsearch          = [X_gridsearch,y_gridsearch]
@@ -1108,9 +1108,9 @@ class Abf:
         # apply RandomizedSearchCV and get best estimator and training the model
         start_time = time.time()
         rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=mlp_modified, verbose=1), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-        rs.fit(X_gridsearch_, y_gridsearch_)
+        rs.fit(X_gridsearch, y_gridsearch)
         mlp = rs.best_estimator_
-        mlp.fit(X_gridsearch, y_gridsearch)
+        mlp.fit(X_train, y_train)
 
         # training the model
         # model name
@@ -1206,9 +1206,9 @@ class Abf:
         # apply RandomizedSearchCV and get best estimator and training the model
         start_time = time.time()
         rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=lstm_modified, verbose=1), param_distributions=random_grid, scoring=metrics.make_scorer(lstm_scorer), n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-        rs.fit(X_gridsearch_.reshape(X_gridsearch_.shape[0], 1, X_gridsearch_.shape[1]), y_gridsearch_.reshape(y_gridsearch_.shape[0], 1, y_gridsearch_.shape[1]))
+        rs.fit(X_gridsearch.reshape(X_gridsearch.shape[0], 1, X_gridsearch.shape[1]), y_gridsearch.reshape(y_gridsearch.shape[0], 1, y_gridsearch.shape[1]))
         lstm = rs.best_estimator_
-        lstm.fit(X_gridsearch.reshape(X_gridsearch.shape[0], 1, X_gridsearch.shape[1]), y_gridsearch.reshape(y_gridsearch.shape[0], 1, y_gridsearch.shape[1]))
+        lstm.fit(X_train.reshape(X_train.shape[0], 1, X_train.shape[1]), y_train.reshape(y_train.shape[0], 1, y_train.shape[1]))
 
         # training the model
         # model name
@@ -1266,9 +1266,9 @@ class Abf:
           rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestClassifier(n_jobs=self.n_cores, verbose=1, random_state=self.random_state, class_weight=class_weight), param_distributions=random_grid, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
         else:
           rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(n_jobs=self.n_cores, verbose=1, random_state=self.random_state), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-        rs.fit(X_gridsearch_, y_gridsearch_)
+        rs.fit(X_gridsearch, y_gridsearch)
         rf = rs.best_estimator_
-        rf.fit(X_gridsearch, y_gridsearch)
+        rf.fit(X_train, y_train)
 
         # model name
         str_model = "RFRegressor/RFClassifier (n_estimators="+str(rs.best_params_['n_estimators'])+",max_features="+str(rs.best_params_['max_features'])+",max_depth="+str(rs.best_params_['max_depth'])+",min_samples_leaf="+str(rs.best_params_['min_samples_leaf'])+",min_samples_split="+str(rs.best_params_['min_samples_split'])+",bootstrap="+str(rs.best_params_['bootstrap'])+")"
@@ -1312,21 +1312,7 @@ class Abf:
             'estimator__kernel':    ['rbf'],
             'estimator__gamma':     scipy.stats.expon(scale=.100),
             'estimator__C':         scipy.stats.expon(scale=1),
-            'estimator__epsilon':   [0.1],
-            'estimator__shrinking': [True]
-          },
-          {
-            'estimator__kernel':    ['rbf'],
-            'estimator__gamma':     ['auto','scale'],
-            'estimator__C':         scipy.stats.expon(scale=1),
-            'estimator__epsilon':   [0.1],
-            'estimator__shrinking': [True]
-          },
-          {
-            'estimator__kernel':    ['linear'],
-            'estimator__gamma':     ['scale'],
-            'estimator__C':         scipy.stats.expon(scale=1),
-            'estimator__epsilon':   [0.1],
+            'estimator__epsilon':   [0.001],
             'estimator__shrinking': [True]
           }
         ]
@@ -1344,7 +1330,7 @@ class Abf:
           rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputRegressor(svm.SVR(verbose=0), n_jobs=self.n_cores), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
         rs.fit(X_gridsearch_, y_gridsearch_)
         svm_model = rs.best_estimator_
-        svm_model.fit(X_gridsearch, y_gridsearch)
+        svm_model.fit(X_train, y_train)
         
         # model name
         if self.class_mode:
@@ -1930,6 +1916,8 @@ class Abf:
               'rs_train_size':    str(self.rs_train_size), 
               'rs_iter':          str(self.rs_iter), 
               'pca_size':         str(self.pca_size),
+              'attribute_lat_lon':str(self.attribute_lat_lon),
+              'attribute_doy':    str(self.attribute_doy),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),
@@ -2069,6 +2057,8 @@ class Abf:
               'rs_train_size':    str(self.rs_train_size), 
               'rs_iter':          str(self.rs_iter), 
               'pca_size':         str(self.pca_size),
+              'attribute_lat_lon':str(self.attribute_lat_lon),
+              'attribute_doy':    str(self.attribute_doy),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),
@@ -2199,6 +2189,8 @@ class Abf:
               'rs_train_size':    str(self.rs_train_size), 
               'rs_iter':          str(self.rs_iter), 
               'pca_size':         str(self.pca_size),
+              'attribute_lat_lon':str(self.attribute_lat_lon),
+              'attribute_doy':    str(self.attribute_doy),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),
@@ -2358,6 +2350,8 @@ class Abf:
               'rs_train_size':    str(self.rs_train_size), 
               'rs_iter':          str(self.rs_iter), 
               'pca_size':         str(self.pca_size),
+              'attribute_lat_lon':str(self.attribute_lat_lon),
+              'attribute_doy':    str(self.attribute_doy),
               'acc':              float(measures["acc"]),
               'bacc':             float(measures["bacc"]),
               'kappa':            float(measures["kappa"]),
