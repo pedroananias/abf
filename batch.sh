@@ -9,16 +9,16 @@ SCRIPT="script.py"
 CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ARRAYS - FULL
-declare -a DAYS_THRESHOLD=("90" "180" "365" "730")
+declare -a DAYS_THRESHOLD=("90" "180" "365" "730" "1825")
 declare -a DAYS_IN_OUT=("--days_in=5 --days_out=5")
 declare -a GRID_SIZE=("--grid_size=6" "--grid_size=9")
 declare -a MODELS=("rf" "svm" "mlp" "lstm")
-declare -a FILLS_MISSING=("--fill_missing=ffill" "--fill_missing=time")
-declare -a REDUCER=("--reducer --pca_size=0.900" "--reducer --pca_size=0.950" "--reducer --pca_size=0.990")
+declare -a FILLS_MISSING=("--fill_missing=ffill" "--fill_missing=time" "--fill_missing=linear")
+declare -a REDUCER=("--reducer --pca_size=0.850" "--reducer --pca_size=0.900" "--reducer --pca_size=0.950" "--reducer --pca_size=0.990")
 declare -a CLASS_MODE=("--class_mode" "--class_mode --class_weight")
 declare -a NORMALIZE=("")
 declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01" "--rs_train_size=0.025" "--rs_train_size=0.05" "--rs_train_size=0.10")
-declare -a RS_ITERS=("--rs_iter=25" "--rs_iter=50" "--rs_iter=100" "--rs_iter=500")
+declare -a RS_ITERS=("--rs_iter=25" "--rs_iter=50" "--rs_iter=100" "--rs_iter=250")
 
 # SHOW BASE DIR
 echo "$PYTHON $BASEDIR/$SCRIPT"

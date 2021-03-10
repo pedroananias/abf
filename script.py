@@ -69,10 +69,13 @@
 # - Version 18:
 # - Fixes in the modelling process and label selection
 # - Added ROI validation from Google Earth Engine Console
+#
+# - Version 19:
+# - Fix SVM slow modelling process
 #####################################################################################################################################
 
 # ### Version
-version = "V18"
+version = "V19"
 
 
 

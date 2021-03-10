@@ -1031,9 +1031,10 @@ class Abf:
     out_attributes  = self.df_train[1].shape[1]
 
     # get data
-    X_train, y_train                  = self.df_train
-    X_test, y_test                    = self.df_test
-    X_gridsearch, _, y_gridsearch, _  = model_selection.train_test_split(X_train, y_train, train_size=self.rs_train_size, random_state=self.random_state)
+    X_train, y_train                    = self.df_train
+    X_test, y_test                      = self.df_test
+    X_gridsearch, _, y_gridsearch, _    = model_selection.train_test_split(X_train, y_train, train_size=self.rs_train_size, random_state=self.random_state)
+    X_gridsearch_, _, y_gridsearch_, _  = model_selection.train_test_split(X_train, y_train, train_size=self.rs_train_size/20, random_state=self.random_state)
 
     # fill randomized search dataframe
     self.df_randomizedsearch          = [X_gridsearch,y_gridsearch]
@@ -1338,7 +1339,7 @@ class Abf:
           rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputClassifier(svm.SVC(verbose=0, random_state=self.random_state, class_weight=class_weight2), n_jobs=self.n_cores), param_distributions=random_grid_clear, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
         else:
           rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputRegressor(svm.SVR(verbose=0), n_jobs=self.n_cores), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-        rs.fit(X_gridsearch, y_gridsearch)
+        rs.fit(X_gridsearch_, y_gridsearch_)
         svm_model = rs.best_estimator_
         
         # model name
