@@ -1108,8 +1108,9 @@ class Abf:
         # apply RandomizedSearchCV and get best estimator and training the model
         start_time = time.time()
         rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=mlp_modified, verbose=1), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-        rs.fit(X_gridsearch, y_gridsearch)
+        rs.fit(X_gridsearch_, y_gridsearch_)
         mlp = rs.best_estimator_
+        mlp.fit(X_gridsearch, y_gridsearch)
 
         # training the model
         # model name
@@ -1205,8 +1206,9 @@ class Abf:
         # apply RandomizedSearchCV and get best estimator and training the model
         start_time = time.time()
         rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=lstm_modified, verbose=1), param_distributions=random_grid, scoring=metrics.make_scorer(lstm_scorer), n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-        rs.fit(X_gridsearch.reshape(X_gridsearch.shape[0], 1, X_gridsearch.shape[1]), y_gridsearch.reshape(y_gridsearch.shape[0], 1, y_gridsearch.shape[1]))
+        rs.fit(X_gridsearch_.reshape(X_gridsearch_.shape[0], 1, X_gridsearch_.shape[1]), y_gridsearch_.reshape(y_gridsearch_.shape[0], 1, y_gridsearch_.shape[1]))
         lstm = rs.best_estimator_
+        lstm.fit(X_gridsearch.reshape(X_gridsearch.shape[0], 1, X_gridsearch.shape[1]), y_gridsearch.reshape(y_gridsearch.shape[0], 1, y_gridsearch.shape[1]))
 
         # training the model
         # model name
@@ -1264,8 +1266,9 @@ class Abf:
           rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestClassifier(n_jobs=self.n_cores, verbose=1, random_state=self.random_state, class_weight=class_weight), param_distributions=random_grid, scoring='neg_mean_squared_error', n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
         else:
           rs = model_selection.RandomizedSearchCV(estimator=ensemble.RandomForestRegressor(n_jobs=self.n_cores, verbose=1, random_state=self.random_state), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-        rs.fit(X_gridsearch, y_gridsearch)
+        rs.fit(X_gridsearch_, y_gridsearch_)
         rf = rs.best_estimator_
+        rf.fit(X_gridsearch, y_gridsearch)
 
         # model name
         str_model = "RFRegressor/RFClassifier (n_estimators="+str(rs.best_params_['n_estimators'])+",max_features="+str(rs.best_params_['max_features'])+",max_depth="+str(rs.best_params_['max_depth'])+",min_samples_leaf="+str(rs.best_params_['min_samples_leaf'])+",min_samples_split="+str(rs.best_params_['min_samples_split'])+",bootstrap="+str(rs.best_params_['bootstrap'])+")"
@@ -1341,6 +1344,7 @@ class Abf:
           rs = model_selection.RandomizedSearchCV(estimator=multioutput.MultiOutputRegressor(svm.SVR(verbose=0), n_jobs=self.n_cores), param_distributions=random_grid, scoring="neg_mean_squared_error", n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
         rs.fit(X_gridsearch_, y_gridsearch_)
         svm_model = rs.best_estimator_
+        svm_model.fit(X_gridsearch, y_gridsearch)
         
         # model name
         if self.class_mode:
