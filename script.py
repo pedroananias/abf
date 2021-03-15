@@ -72,10 +72,13 @@
 #
 # - Version 19:
 # - Fix SVM slow modelling process
+#
+# - Version 20:
+# - Fix error when using attributes disable_attribute_lat_lon and disable_attribute_doy
 #####################################################################################################################################
 
 # ### Version
-version = "V19"
+version = "V20"
 
 
 
@@ -207,7 +210,7 @@ try:
   # ### ABF execution
 
   # folder to save results from algorithm at
-  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+']'
+  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',g='+str(args.grid_size)+']'
   if not os.path.exists(folder):
     os.mkdir(folder)
 

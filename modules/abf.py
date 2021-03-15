@@ -1458,9 +1458,8 @@ class Abf:
     df_classification_proc      = misc.series_to_supervised(df_classification[df_classification['doy']==max(df_classification['doy'])][self.attributes_selected].values, self.days_in, self.days_out,dropnan=True)
     str_lat                     = 'var'+str(self.attributes_selected.index('lat')+1)+'(t-'+str(self.days_in)+')'
     str_lon                     = 'var'+str(self.attributes_selected.index('lon')+1)+'(t-'+str(self.days_in)+')'
-    str_doy                     = 'var'+str(self.attributes_selected.index('doy')+1)+'(t-'+str(self.days_in)+')'
     in_labels                   = [s for i, s in enumerate(df_classification_proc.columns) if 't-' in s]
-    in_labels                   = [s for i, s in enumerate(in_labels) if (self.attribute_lat_lon or not str_lat in s) and (self.attribute_lat_lon or not str_lon in s) and (self.attribute_doy or not str_doy in s)]
+    in_labels                   = [s for i, s in enumerate(in_labels) if (self.attribute_lat_lon or not 'var'+str(self.attributes_selected.index('lat')+1) in s) and (self.attribute_lat_lon or not 'var'+str(self.attributes_selected.index('lon')+1) in s) and (self.attribute_doy or not 'var'+str(self.attributes_selected.index('doy')+1) in s)]
     array_lats_lons             = df_classification_proc[[str_lat,str_lon]].values
 
     # splitting training and testing sets
