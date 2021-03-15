@@ -119,15 +119,15 @@ parser.add_argument('--name', dest='name', action='store', default="erie",
                    help="Place where to save generated files")
 parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=1825,
                    help="Days threshold used to build the timeseries and training set")
-parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=1,
+parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=5,
                    help="Day threshold to be used as input forecast")
 parser.add_argument('--days_out', dest='days_out', action='store', type=int, default=5,
                    help="Day threshold to be used as output forecast")
-parser.add_argument('--model', dest='model', action='store', default=None,
+parser.add_argument('--model', dest='model', action='store', default="svm",
                    help="Select the desired module: mlp, lstm, rf, svm or all (None)")
 parser.add_argument('--fill_missing', dest='fill_missing', action='store', default="time",
                    help="Defines algorithm to be used to fill empty dates and values: dummy, ffill, bfill, time, linear")
-parser.add_argument('--grid_size', dest='grid_size', action='store', type=int, default=3,
+parser.add_argument('--grid_size', dest='grid_size', action='store', type=int, default=6,
                    help="Grid size that will be used in prediction")
 parser.add_argument('--remove_dummies', dest='remove_dummies', action='store_true',
                    help="Defines if the dummies will be removed before training (only works with fill_missing=dummy)")
@@ -143,7 +143,7 @@ parser.add_argument('--propagate', dest='propagate', action='store_true',
                    help="Defines whether predictions will be propagated ahead")
 parser.add_argument('--rs_train_size', dest='rs_train_size', action='store', type=float, default=0.01,
                    help="It allow increase th randomized search dataset training size")
-parser.add_argument('--rs_iter', dest='rs_iter', action='store', type=int, default=500,
+parser.add_argument('--rs_iter', dest='rs_iter', action='store', type=int, default=250,
                    help="It allow increase th randomized search iteration size")
 parser.add_argument('--pca_size', dest='pca_size', action='store', type=float, default=0.900,
                    help="Define PCA reducer variance size")
@@ -270,12 +270,9 @@ try:
 
     # prediction results
     algorithm.save_dataset(df=algorithm.df_results, path=folder+'/results.csv')
-    #algorithm.save_results_plot(df=algorithm.df_results, path=folder+'/results.png')
 
     # preprocessing results
     algorithm.save_dataset(df=algorithm.df_timeseries, path=folder+'/timeseries.csv')
-    #algorithm.save_timeseries_plot(df=algorithm.df_timeseries, path=folder+'/timeseries.png')
-    #algorithm.save_timeseries_plot(df=algorithm.df_timeseries, path=folder+'/timeseries_join.png', join=True)
 
     # save training datasets
     if args.save_train == True:

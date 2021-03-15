@@ -23,14 +23,14 @@ earthengine authenticate
 
 ### How to execute the default script?
 
-python /path/to/abf/script.py --lat_lon=-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826 --name=erie --from_date=2019-07-11
+python /path/to/abf/script.py --lat_lon=-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826 --name=erie --from_date=2019-07-11 --reducer --class_mode
 
 
 
 
 ### What are the results?
 
-The script will generate a 5-days forecast of occurrence of algae blooming in the inserted study area starting from input date. Therefore, a folder located in 'data' is created and named based on the date and version of the script executed. Example: /path/to/abyo/data/20201026_090433[v=V14-erie,d=2019-07-11,dt=90,din=1,dout=5,m=rf]. 
+The script will generate a 5-days forecast of occurrence of algae blooming in the inserted study area starting from input date. Therefore, a folder located in 'data' is created and named based on the date and version of the script executed. Example: /path/to/abyo/data/20201026_090433[v=V20-erie,d=2019-07-11,dt=1825,din=5,dout=5,m=svm,g=6]. 
 
 ATTENTION: big date range tends to lead to memory leak, stopping the script execution. It is always a good pratice to split the dates in two or three parts, unless you have a big amount of memory in your computer.
 
@@ -65,25 +65,24 @@ algorithm = abf.Abf(days_threshold=1825,
                     lat_lon="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826",
                     cache_path=folder,
                     force_cache=False,
-                    days_in=1,
+                    days_in=5,
                     days_out=5,
                     from_date="2019-07-11",
-                    model="rf")
+                    model="svm",
+                    reducer=True,
+                    class_mode=True)
 
 # preprocessing
 algorithm.process_timeseries_data()
 algorithm.process_training_data(df=algorithm.df_timeseries)
 
 # train/predict
-algorithm.train(batch_size=4096, disable_gpu=True)
+algorithm.train(batch_size=2048, disable_gpu=True)
 algorithm.predict(folder=folder+"/prediction")
 
 # prediction results
 algorithm.save_dataset(df=algorithm.df_results, path=folder+'/results.csv')
-algorithm.save_results_plot(df=algorithm.df_results, path=folder+'/results.png')
 
 # preprocessing results
 algorithm.save_dataset(df=algorithm.df_timeseries, path=folder+'/timeseries.csv')
-algorithm.save_timeseries_plot(df=algorithm.df_timeseries, path=folder+'/timeseries.png')
-algorithm.save_timeseries_plot(df=algorithm.df_timeseries, path=folder+'/timeseries_join.png', join=True)
 ```
