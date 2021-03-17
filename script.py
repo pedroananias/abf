@@ -75,10 +75,13 @@
 #
 # - Version 20:
 # - Fix error when using attributes disable_attribute_lat_lon and disable_attribute_doy
+#
+# - Version 21:
+# - Selection of best parameters and change in scene results format
 #####################################################################################################################################
 
 # ### Version
-version = "V20"
+version = "V21"
 
 
 
@@ -117,17 +120,17 @@ parser.add_argument('--from_date', dest='from_date', action='store', default="20
                    help="Date to end time series (it will forecast 5 days starting from this date)")
 parser.add_argument('--name', dest='name', action='store', default="erie",
                    help="Place where to save generated files")
-parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=1825,
+parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=180,
                    help="Days threshold used to build the timeseries and training set")
 parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=5,
                    help="Day threshold to be used as input forecast")
 parser.add_argument('--days_out', dest='days_out', action='store', type=int, default=5,
                    help="Day threshold to be used as output forecast")
-parser.add_argument('--model', dest='model', action='store', default="svm",
+parser.add_argument('--model', dest='model', action='store', default="rf",
                    help="Select the desired module: mlp, lstm, rf, svm or all (None)")
 parser.add_argument('--fill_missing', dest='fill_missing', action='store', default="time",
                    help="Defines algorithm to be used to fill empty dates and values: dummy, ffill, bfill, time, linear")
-parser.add_argument('--grid_size', dest='grid_size', action='store', type=int, default=6,
+parser.add_argument('--grid_size', dest='grid_size', action='store', type=int, default=12,
                    help="Grid size that will be used in prediction")
 parser.add_argument('--remove_dummies', dest='remove_dummies', action='store_true',
                    help="Defines if the dummies will be removed before training (only works with fill_missing=dummy)")

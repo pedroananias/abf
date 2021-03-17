@@ -23,14 +23,14 @@ earthengine authenticate
 
 ### How to execute the default script?
 
-python /path/to/abf/script.py --lat_lon=-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826 --name=erie --from_date=2019-07-11 --reducer --class_mode
+python /path/to/abf/script.py --lat_lon=-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826 --name=erie --from_date=2019-07-11 --reducer --class_mode --disable_attribute_lat_lon
 
 
 
 
 ### What are the results?
 
-The script will generate a 5-days forecast of occurrence of algae blooming in the inserted study area starting from input date. Therefore, a folder located in 'data' is created and named based on the date and version of the script executed. Example: /path/to/abyo/data/20201026_090433[v=V20-erie,d=2019-07-11,dt=1825,din=5,dout=5,m=svm,g=6]. 
+The script will generate a 5-days forecast of occurrence of algae blooming in the inserted study area starting from input date. Therefore, a folder located in 'data' is created and named based on the date and version of the script executed. Example: /path/to/abf/data/20201026_090433[v=V20-erie,d=2019-07-11,dt=180,din=5,dout=5,m=rf,g=12]. 
 
 ATTENTION: big date range tends to lead to memory leak, stopping the script execution. It is always a good pratice to split the dates in two or three parts, unless you have a big amount of memory in your computer.
 
@@ -58,8 +58,8 @@ ee.Initialize()
 folder = "/path/to/desired/folder"
 
 # create algorithm object
-algorithm = abf.Abf(days_threshold=1825,
-                    grid_size=3,
+algorithm = abf.Abf(days_threshold=180,
+                    grid_size=12,
                     sensor="modis", 
                     geometry=geometry,
                     lat_lon="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826",
@@ -68,9 +68,10 @@ algorithm = abf.Abf(days_threshold=1825,
                     days_in=5,
                     days_out=5,
                     from_date="2019-07-11",
-                    model="svm",
+                    model="rf",
                     reducer=True,
-                    class_mode=True)
+                    class_mode=True,
+                    attribute_lat_lon=False)
 
 # preprocessing
 algorithm.process_timeseries_data()

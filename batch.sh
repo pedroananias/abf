@@ -9,17 +9,17 @@ SCRIPT="script.py"
 CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ARRAYS - FULL
-declare -a DAYS_THRESHOLD=("90" "180")
+declare -a DAYS_THRESHOLD=("180" "365")
 declare -a DAYS_IN_OUT=("--days_in=5 --days_out=5")
-declare -a GRID_SIZE=("--grid_size=3" "--grid_size=6" "--grid_size=9" "--grid_size=12")
+declare -a GRID_SIZE=("--grid_size=9" "--grid_size=12")
 declare -a MODELS=("rf" "svm" "mlp" "lstm")
-declare -a FILLS_MISSING=("--fill_missing=ffill" "--fill_missing=time" "--fill_missing=linear")
+declare -a FILLS_MISSING=("--fill_missing=time")
 declare -a REDUCER=("--reducer --pca_size=0.900")
-declare -a CLASS_MODE=("--class_mode" "--class_mode --class_weight")
+declare -a CLASS_MODE=("--class_mode")
 declare -a NORMALIZE=("")
-declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01" "--rs_train_size=0.025" "--rs_train_size=0.05")
-declare -a RS_ITERS=("--rs_iter=25" "--rs_iter=50" "--rs_iter=100" "--rs_iter=250")
-declare -a ATTR=("" "--disable_attribute_lat_lon" "--disable_attribute_doy" "--disable_attribute_lat_lon --disable_attribute_doy")
+declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01")
+declare -a RS_ITERS=("--rs_iter=25" "--rs_iter=50")
+declare -a ATTR=("--disable_attribute_lat_lon")
 
 # SHOW BASE DIR
 echo "$PYTHON $BASEDIR/$SCRIPT"
@@ -29,7 +29,7 @@ echo "$PYTHON $BASEDIR/$SCRIPT"
 
 # ARGUMENTS
 NAME="erie"
-LAT_LON="-83.46168361631736,41.74451005963491,-83.39542232481345,41.69992268431667"
+LAT_LON="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826"
 FROM_DATE="2019-07-11"
 
 # EXECUTIONS
@@ -76,7 +76,7 @@ done
 
 # ARGUMENTS
 NAME="chilika"
-LAT_LON="85.15749649545916,19.628963984868907,85.21105484506853,19.590154721044673"
+LAT_LON="85.08856074928927,19.698732779758075,85.28279700936078,19.546819354913833"
 FROM_DATE="2020-03-29"
 
 # EXECUTIONS

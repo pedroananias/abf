@@ -128,8 +128,8 @@ class Abf:
   # constructor
   def __init__(self,
                geometry:          ee.Geometry,
-               days_threshold:    int           = 1825,
-               grid_size:         int           = 3,
+               days_threshold:    int           = 180,
+               grid_size:         int           = 12,
                sensor:            str           = "modis",
                scale:             int           = None,
                path:              str           = None,
@@ -141,7 +141,7 @@ class Abf:
                convolve:          bool          = False,
                convolve_radius:   int           = 1,
                scaler:            str           = 'robust',
-               days_in:           int           = 1,
+               days_in:           int           = 5,
                days_out:          int           = 5,
                from_date:         str           = None,
                model:             str           = None,
@@ -154,9 +154,9 @@ class Abf:
                class_weight:      bool          = False,
                propagate:         bool          = False,
                rs_train_size:     float         = 0.01,
-               rs_iter:           int           = 500,
+               rs_iter:           int           = 25,
                pca_size:          float         = 0.900,
-               attribute_lat_lon: bool          = True,
+               attribute_lat_lon: bool          = False,
                attribute_doy:     bool          = True,
                test_mode:         bool          = False):
     
