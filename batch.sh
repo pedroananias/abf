@@ -18,7 +18,7 @@ declare -a REDUCER=("--reducer --pca_size=0.900")
 declare -a CLASS_MODE=("--class_mode")
 declare -a NORMALIZE=("")
 declare -a RS_TRAIN_SIZES=("--rs_train_size=0.01")
-declare -a RS_ITERS=("--rs_iter=25" "--rs_iter=50")
+declare -a RS_ITERS=("--rs_iter=25")
 declare -a ATTR=("--disable_attribute_lat_lon")
 
 # SHOW BASE DIR
@@ -55,7 +55,7 @@ do
 									do
 										for normalized in "${NORMALIZE[@]}"
 										do
-											eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr"
+											echo "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr"
 										done
 									done
 								done
@@ -100,7 +100,7 @@ do
 								do
 									for normalized in "${NORMALIZE[@]}"
 									do
-										eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter"
+										echo "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter"
 									done
 								done
 							done
