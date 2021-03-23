@@ -18,14 +18,14 @@ declare -a REDUCER=("--reducer --pca_size=0.900")
 declare -a CLASS_MODE=("--class_mode")
 declare -a NORMALIZE=("")
 declare -a RS_TRAIN_SIZES=("--rs_train_size=10000.0")
-declare -a RS_ITERS=("--rs_iter=250")
+declare -a RS_ITERS=("--rs_iter=25")
 declare -a ATTR=("--disable_attribute_lat_lon")
 
 # SHOW BASE DIR
 echo "$PYTHON $BASEDIR/$SCRIPT"
 
 ############################################################################################
-## LAKE ERIE 1
+## LAKE ERIE
 
 # ARGUMENTS
 NAME="erie"
