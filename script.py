@@ -124,7 +124,7 @@ parser.add_argument('--from_date', dest='from_date', action='store', default="20
                    help="Date to end time series (it will forecast 5 days starting from this date)")
 parser.add_argument('--name', dest='name', action='store', default="erie",
                    help="Place where to save generated files")
-parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=730,
+parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=365,
                    help="Days threshold used to build the timeseries and training set")
 parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=5,
                    help="Day threshold to be used as input forecast")

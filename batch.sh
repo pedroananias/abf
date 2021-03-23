@@ -9,7 +9,7 @@ SCRIPT="script.py"
 CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ARRAYS - FULL
-declare -a DAYS_THRESHOLD=("365" "730")
+declare -a DAYS_THRESHOLD=("90" "180" "365" "730")
 declare -a DAYS_IN_OUT=("--days_in=5 --days_out=5")
 declare -a GRID_SIZE=("--grid_size=3" "--grid_size=5" "--grid_size=7" "--grid_size=9")
 declare -a MODELS=("rf" "svm" "mlp" "lstm")
@@ -18,8 +18,8 @@ declare -a REDUCER=("--reducer --pca_size=0.900")
 declare -a CLASS_MODE=("--class_mode")
 declare -a NORMALIZE=("")
 declare -a RS_TRAIN_SIZES=("--rs_train_size=10000.0")
-declare -a RS_ITERS=("--rs_iter=25" "--rs_iter=250")
-declare -a ATTR=("" "--disable_attribute_lat_lon")
+declare -a RS_ITERS=("--rs_iter=250")
+declare -a ATTR=("--disable_attribute_lat_lon")
 
 # SHOW BASE DIR
 echo "$PYTHON $BASEDIR/$SCRIPT"

@@ -133,7 +133,7 @@ class Abf:
   # constructor
   def __init__(self,
                geometry:          ee.Geometry,
-               days_threshold:    int           = 730,
+               days_threshold:    int           = 365,
                grid_size:         int           = 5,
                sensor:            str           = "modis",
                scale:             int           = None,
