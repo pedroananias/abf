@@ -1720,7 +1720,7 @@ class Abf:
         # scene
         if plot_type == 'scene':
           fig = plt.figure(figsize=(14,6), dpi=300)
-          #plt.tight_layout(pad=10.0)
+          plt.tight_layout(pad=10.0)
           plt.rc('xtick',labelsize=10)
           plt.rc('ytick',labelsize=10)
           plt.box(False)
@@ -2216,10 +2216,14 @@ class Abf:
 
           # adjust ticks
           ax.set_xticklabels((self.df_scene['date'].values))
+          ax.set_xlim(-1,len(self.df_scene['date'].values))
           ax.set_ylim(self.df_scene['difference'].min(),self.df_scene['ground_truth'].max()+1 if self.df_scene['ground_truth'].max() > self.df_scene['prediction'].max() else self.df_scene['prediction'].max()+1)
           ax2.set_ylim(ax.get_ylim())
           ax2.set_yticks([])
-          #ax.tick_params(axis='both', which='major', pad=10)
+
+          # labels
+          ax.set_xlabel('Predicted dates')
+          ax.set_ylabel('% of occurrence')
           
           # fix legend
           handles, labels = ax.get_legend_handles_labels()

@@ -82,10 +82,13 @@
 # - Version 22:
 # - Fixes in MLP and LSTM modelling and prediction process
 # - Changes in grid and scene results
+#
+# - Version 23:
+# - Fixes in scene plot results
 #####################################################################################################################################
 
 # ### Version
-version = "V22"
+version = "V23"
 
 
 
