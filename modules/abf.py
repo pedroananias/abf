@@ -1043,8 +1043,7 @@ class Abf:
     X_train, y_train                    = self.df_train
     X_test, y_test                      = self.df_test
     X_gridsearch, _, y_gridsearch, _    = model_selection.train_test_split(X_train, y_train, train_size=self.rs_train_size, random_state=self.random_state, shuffle=self.shuffle)
-    #X_gridsearch_, _, y_gridsearch_, _  = model_selection.train_test_split(X_train, y_train, train_size=10000, random_state=self.random_state, shuffle=self.shuffle)
-
+    
     # fill randomized search dataframe
     self.df_randomizedsearch          = [X_gridsearch,y_gridsearch]
 
@@ -1530,7 +1529,7 @@ class Abf:
 
     # plot configuration
     image_empty_clip_io         = PIL.Image.open(BytesIO(requests.get(self.clip_image(ee.Image([99999,99999,99999])).select(['constant','constant_1','constant_2']).getThumbUrl({'min':0, 'max':99999}), timeout=60).content))
-    markersize_scatter          = (72./300)*24
+    markersize_scatter          = (72./300)*((self.scale/self.resolution[0])*4)
     xticks                      = np.linspace(self.sample_lon_lat[0][1], self.sample_lon_lat[1][1], num=self.plots_grid+1)
     yticks                      = np.linspace(self.sample_lon_lat[0][0], self.sample_lon_lat[1][0], num=self.plots_grid+1)
 
@@ -1721,7 +1720,7 @@ class Abf:
         # scene
         if plot_type == 'scene':
           fig = plt.figure(figsize=(14,6), dpi=300)
-          plt.tight_layout(pad=10.0)
+          #plt.tight_layout(pad=10.0)
           plt.rc('xtick',labelsize=10)
           plt.rc('ytick',labelsize=10)
           plt.box(False)
@@ -2220,6 +2219,7 @@ class Abf:
           ax.set_ylim(self.df_scene['difference'].min(),self.df_scene['ground_truth'].max()+1 if self.df_scene['ground_truth'].max() > self.df_scene['prediction'].max() else self.df_scene['prediction'].max()+1)
           ax2.set_ylim(ax.get_ylim())
           ax2.set_yticks([])
+          #ax.tick_params(axis='both', which='major', pad=10)
           
           # fix legend
           handles, labels = ax.get_legend_handles_labels()
@@ -2228,7 +2228,7 @@ class Abf:
           plt.legend(handles=handles, loc='upper right', fancybox=True, shadow=True)
 
           # save plot
-          fig.savefig(folder+'/image/results_'+str(plot_type)+'_'+str(model_short)+'.png')
+          fig.savefig(folder+'/image/results_'+str(plot_type)+'_'+str(model_short)+'.png', bbox_inches='tight')
 
         # others
         else:
