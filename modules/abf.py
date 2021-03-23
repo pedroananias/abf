@@ -106,7 +106,7 @@ class Abf:
   # dataframes
   df_columns                  = ['pixel','index','row','column','date','doy','lat','lon']+attributes
   df_columns_clear            = ['pixel','index','row','column','date','doy','lat','lon']+attributes_clear
-  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'attribute_lat_lon', 'attribute_doy', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'tp', 'tn', 'fp', 'fn']
+  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'attribute_lat_lon', 'attribute_doy', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'r2score', 'tp', 'tn', 'fp', 'fn']
   df_columns_scene            = ['date','model','ground_truth', 'prediction', 'difference']
   df_timeseries               = None
   df_timeseries_scene         = None
@@ -158,7 +158,7 @@ class Abf:
                class_mode:        bool          = True,
                class_weight:      bool          = False,
                propagate:         bool          = False,
-               rs_train_size:     float         = 10000.0,
+               rs_train_size:     float         = 1000.0,
                rs_iter:           int           = 250,
                pca_size:          float         = 0.900,
                attribute_lat_lon: bool          = False,
@@ -1536,27 +1536,11 @@ class Abf:
 
     # colormap
     color_map                   = np.empty((5,1), dtype=object)
-    color_map[0]                = "black"
-    color_map[1]                = "blue"
-    color_map[2]                = "cyan"
-    color_map[3]                = "yellow"
-    color_map[4]                = "red"
-
-    # colormap
-    color_map2                  = np.empty((101,1), dtype=object)
-    color_map2[:21]             = "green"
-    color_map2[21:41]           = "yellow"
-    color_map2[41:61]           = "orange"
-    color_map2[61:81]           = "red"
-    color_map2[81:]             = "darkred"
-
-    # colormap
-    color_map3                  = np.empty((5,1), dtype=object)
-    color_map3[0]               = "cyan"
-    color_map3[1]               = "black"
-    color_map3[2]               = "black"
-    color_map3[3]               = "black"
-    color_map3[4]               = "magenta"
+    color_map[0]                = "cyan"
+    color_map[1]                = "black"
+    color_map[2]                = "black"
+    color_map[3]                = "black"
+    color_map[4]                = "magenta"
 
     # colorbar tixks
     colorbar_ticks_max          = 100
@@ -1564,35 +1548,14 @@ class Abf:
     colorbar_ticks_labels       = [str(l) for l in colorbar_ticks]
     colorbar_ticks_labels[-1]   = str(colorbar_ticks_labels[-1])
 
-    # encoder colors
-    color_encoder               = {"green":0,"yellow":1,"orange":2,"red":3,"darkred":4}
-
     # legends
-    legends_colors = [Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='black',fill=True),
-                      Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='blue',fill=True),
-                      Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='cyan',fill=True),
-                      Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='yellow',fill=True),
-                      Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='red',fill=True),
-                      Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='gray',fill=True)]
-
-    # legends 2
-    legends_colors2 = [Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='green',fill=True),
-                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='yellow',fill=True),
-                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='orange',fill=True),
-                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='red',fill=True),
-                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='darkred',fill=True),
-                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='gray',fill=True)]
-
-    # legends
-    legends_colors3 = [Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='cyan',fill=True),
+    legends_colors = [Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='cyan',fill=True),
                        Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='magenta',fill=True),
                        Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='gray',fill=True),
                        Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='black',fill=True)]
     
     # legends captions
-    legends_colors_captions   = ['No agreement', 'Low agreement', 'Average agreement', 'High agreement', 'Totally in agreement', 'Land/Cloud/Shadow']
-    legends_colors_captions2  = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%', 'Land/Cloud/Shadow']
-    legends_colors_captions3  = ['Regular', 'Anomaly', 'Land/Cloud/Shadow', 'Indetermined']
+    legends_colors_captions = ['Regular', 'Anomaly', 'Land/Cloud/Shadow', 'Indetermined']
 
     # clear scene results
     self.df_scene = pd.DataFrame({}, columns=self.df_columns_scene)
@@ -1816,7 +1779,7 @@ class Abf:
             count_pixels = len(df_true)
 
             # apply color
-            for index, color in enumerate(color_map3):
+            for index, color in enumerate(color_map):
               df_true.loc[(df_true['label'] == index), 'color'] = color[0]
 
             # plot ground truth results
@@ -1878,43 +1841,6 @@ class Abf:
             c.margins(x=0,y=0)
             plot_count += 1
 
-        # scene
-        # elif plot_type == 'scene':
-        #   for i, date in enumerate(self.predict_dates):
-
-        #     # get date pixels
-        #     df_true       = df_predict[(df_predict['date']==date) & (df_predict['cloud']!=self.dummy)]
-        #     count_pixels  = len(df_true)
-        #     color         = "green"
-        #     pct           = 0.0
-
-        #     # fix label value
-        #     df_true.loc[(df_true["label"]>0) & (df_true["label"]<len(attributes_clear)), 'label'] = -1
-        #     df_true.loc[(df_true["label"]==len(attributes_clear)), 'label'] = 1
-
-        #     # true
-        #     if len(df_true[df_true["label"]!=-1])>0:
-        #       pct = int((df_true[df_true["label"]!=-1]['label'].sum()/len(df_true)) * 100)
-        #       color = color_map2[pct][0]
-
-        #     # fix label again
-        #     df_true.loc[(df_true["label"]==-1), 'label'] = 0
-
-        #     # plot
-        #     c = fig.add_subplot(3,len(self.predict_dates),plot_count)
-        #     c.set_title("Ground Truth (Pct:"+str(pct)+"%)", fontdict = {'fontsize' : 4.5})
-        #     c.set_xticks(xticks)
-        #     c.set_yticks(yticks)
-        #     c.grid(color='b', linestyle='dashed', linewidth=0.1)
-        #     c.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-        #     c.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-        #     c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
-        #     if count_pixels > 0:
-        #       c.scatter(df_true['lat'], df_true['lon'], marker='s', s=markersize_scatter, c=color, edgecolors='none')
-        #       c.scatter(df_predict_clouds[(df_predict_clouds['date']==date)]['lat'], df_predict_clouds[(df_predict_clouds['date']==date)]['lon'], marker='s', s=markersize_scatter, c="gray", edgecolors='none')
-        #     c.margins(x=0,y=0)
-        #     plot_count += 1
-
         # for through each date to evaluate the predictions
         for i, date in enumerate(self.predict_dates):
           
@@ -1945,7 +1871,7 @@ class Abf:
           df_merge.loc[(df_merge['label_predicted'] <= len(attributes_clear)/2), 'label_predicted'] = 0
 
           # apply color
-          for index, color in enumerate(color_map3):
+          for index, color in enumerate(color_map):
             df_merge.loc[(df_merge['label_predicted'] == index), 'color_predicted'] = color[0]
           
           # pixel plot
@@ -2012,6 +1938,7 @@ class Abf:
               'f1score':          float(measures["f1score"]),
               'rmse':             float(measures["rmse"]),
               'mae':              float(measures["mae"]),
+              'r2score':          float(measures["r2score"]),
               'tp':               int(measures["tp"]),
               'tn':               int(measures["tn"]),
               'fp':               int(measures["fp"]),
@@ -2033,7 +1960,7 @@ class Abf:
             if count_pixels > 0:
               c.scatter(df_merge['lat'], df_merge['lon'], marker='s', s=markersize_scatter, c=df_merge['color_predicted'].values, edgecolors='none')
             if i == len(self.predict_dates)-1:
-              c.legend(legends_colors3, legends_colors_captions3, loc='upper center', bbox_to_anchor=(-0.11, -0.24), ncol=4, fontsize='x-small', fancybox=True, shadow=True)
+              c.legend(legends_colors, legends_colors_captions, loc='upper center', bbox_to_anchor=(-0.11, -0.24), ncol=4, fontsize='x-small', fancybox=True, shadow=True)
             c.margins(x=0,y=0)
             plot_count += 1
 
@@ -2136,6 +2063,7 @@ class Abf:
               'f1score':          float(measures["f1score"]),
               'rmse':             float(measures["rmse"]),
               'mae':              float(measures["mae"]),
+              'r2score':          float(measures["r2score"]),
               'tp':               int(measures["tp"]),
               'tn':               int(measures["tn"]),
               'fp':               int(measures["fp"]),
@@ -2143,7 +2071,7 @@ class Abf:
             })
 
             # plot title
-            title_plot = "Pred. (Acc:"+str(round(measures["acc"],2))+",RMSE:"+str(round(measures["rmse"],2))+",MAE:"+str(round(measures["mae"],2))+")"
+            title_plot = "Pred. (RMSE:"+str(round(measures["rmse"],2))+",MAE:"+str(round(measures["mae"],2))+",R^2:"+str(round(measures["r2score"],2))+")"
 
             # plot
             c = fig.add_subplot(3,len(self.predict_dates),plot_count)
@@ -2265,30 +2193,12 @@ class Abf:
               'f1score':          float(measures["f1score"]),
               'rmse':             float(measures["rmse"]),
               'mae':              float(measures["mae"]),
+              'r2score':          float(measures["r2score"]),
               'tp':               int(measures["tp"]),
               'tn':               int(measures["tn"]),
               'fp':               int(measures["fp"]),
               'fn':               int(measures["fn"])
             })
-
-            # # plot title
-            # title_plot = "Pred. (Acc:"+str(round(measures["acc"],2))+",RMSE:"+str(round(measures["rmse"],2))+",MAE:"+str(round(measures["mae"],2))+")"
-
-            # # plot
-            # c = fig.add_subplot(3,len(self.predict_dates),plot_count)
-            # c.set_title(title_plot, fontdict = {'fontsize' : 4.5})
-            # c.set_xticks(xticks)
-            # c.set_yticks(yticks)
-            # c.grid(color='b', linestyle='dashed', linewidth=0.1)
-            # c.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-            # c.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-            # c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
-            # if count_pixels > 0:
-            #   c.scatter(df_merge['lat'], df_merge['lon'], marker='s', s=markersize_scatter, c=color, edgecolors='none')
-            # if i == len(self.predict_dates)-1:
-            #   c.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(0.22, -0.24), ncol=3, fontsize='x-small', fancybox=True, shadow=True)
-            # c.margins(x=0,y=0)
-            # plot_count += 1
 
         # save plot
         #scene
@@ -2299,9 +2209,11 @@ class Abf:
 
           # creat plots
           ax_ = fig.add_subplot(1,1,1)
-          ax = self.df_scene[['ground_truth','prediction']].plot(kind='bar', width=.5, ax=ax_)
+          ax  = self.df_scene[['ground_truth','prediction']].plot(kind='bar', width=.5, ax=ax_)
           ax2 = self.df_scene['difference'].plot(secondary_y=True, color='black', ax=ax_)
-          ax3 = plt.plot([-10,100],[0,0],":",color="black")
+
+          # line at 0
+          plt.plot([-10,100],[0,0],":",color="black")
 
           # adjust ticks
           ax.set_xticklabels((self.df_scene['date'].values))

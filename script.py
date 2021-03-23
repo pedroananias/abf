@@ -148,7 +148,7 @@ parser.add_argument('--class_weight', dest='class_weight', action='store_true',
                    help="Defines whether classes will have defined weights for each")
 parser.add_argument('--propagate', dest='propagate', action='store_true',
                    help="Defines whether predictions will be propagated ahead")
-parser.add_argument('--rs_train_size', dest='rs_train_size', action='store', type=float, default=10000.0,
+parser.add_argument('--rs_train_size', dest='rs_train_size', action='store', type=float, default=1000.0,
                    help="It allow increase the randomized search dataset training size (it can be a floater or integer)")
 parser.add_argument('--rs_iter', dest='rs_iter', action='store', type=int, default=250,
                    help="It allow increase the randomized search iteration size")

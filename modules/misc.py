@@ -45,6 +45,10 @@ def concordance_measures(cm, y_true, y_pred):
     mae = metrics.mean_absolute_error(y_true, y_pred)
   except:
     mae = 0
+  try:
+    r2score = metrics.r2_score(y_true, y_pred)
+  except:
+    r2score = 0
   tau, p_value  = scipy.stats.kendalltau(y_true, y_pred)
   
   # marg
@@ -85,14 +89,15 @@ def concordance_measures(cm, y_true, y_pred):
   mcc           = float(mcc if not math.isnan(mcc) else 0.0)
   rmse          = float(rmse if not math.isnan(rmse) else 0.0)
   mae           = float(mae if not math.isnan(mae) else 0.0)
+  r2score       = float(r2score if not math.isnan(r2score) else 0.0)
   tau, vtau     = float(tau if not math.isnan(tau) else 0.0), float(vtau if not math.isnan(vtau) else 0.0)
   p_value       = float(p_value if not math.isnan(p_value) else 0.0)
 
   # String
-  string = 'Acc:'+str(round(acc,4))+', BAcc:'+str(round(bacc,4))+', F1-Score:'+str(round(f1score,4))+', Kappa:'+str(round(kappa,4))+', vKappa:'+str(round(vkappa,4))+', Tau:'+str(round(tau,4))+', vTau:'+str(round(vtau,4))+', p-value:'+str(round(p_value,4))+', Mcc:'+str(round(mcc,4))+', RMSE:'+str(round(rmse,4))+', MAE:'+str(round(mae,4))+', TP:'+str(tp)+', FP:'+str(fp)+', TN:'+str(tn)+', FN:'+str(fn)
+  string = 'Acc:'+str(round(acc,4))+', BAcc:'+str(round(bacc,4))+', F1-Score:'+str(round(f1score,4))+', Kappa:'+str(round(kappa,4))+', vKappa:'+str(round(vkappa,4))+', Tau:'+str(round(tau,4))+', vTau:'+str(round(vtau,4))+', p-value:'+str(round(p_value,4))+', Mcc:'+str(round(mcc,4))+', RMSE:'+str(round(rmse,4))+', MAE:'+str(round(mae,4))+', R^2:'+str(round(r2score,4))+', TP:'+str(tp)+', FP:'+str(fp)+', TN:'+str(tn)+', FN:'+str(fn)
 
   # Response
-  return {'total':total,'acc':acc,'bacc':bacc,'f1score':f1score,'tau':tau,'vtau':vtau,'p_value':p_value,'kappa':kappa,'vkappa':vkappa,'mcc':mcc,'rmse':rmse,'mae':mae,'tp':tp,'fp':fp,'tn':tn,'fn':fn,'string':string}
+  return {'total':total,'acc':acc,'bacc':bacc,'f1score':f1score,'tau':tau,'vtau':vtau,'p_value':p_value,'kappa':kappa,'vkappa':vkappa,'mcc':mcc,'rmse':rmse,'mae':mae,'r2score':r2score,'tp':tp,'fp':fp,'tn':tn,'fn':fn,'string':string}
 
 
 # Remove duplicated dates

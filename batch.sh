@@ -17,7 +17,7 @@ declare -a FILLS_MISSING=("--fill_missing=time")
 declare -a REDUCER=("--reducer --pca_size=0.900")
 declare -a CLASS_MODE=("--class_mode")
 declare -a NORMALIZE=("")
-declare -a RS_TRAIN_SIZES=("--rs_train_size=10000.0")
+declare -a RS_TRAIN_SIZES=("--rs_train_size=1000.0")
 declare -a RS_ITERS=("--rs_iter=25")
 declare -a ATTR=("--disable_attribute_lat_lon")
 
