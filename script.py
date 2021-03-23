@@ -78,10 +78,14 @@
 #
 # - Version 21:
 # - Selection of best parameters and change in scene results format
+#
+# - Version 22:
+# - Fixes in MLP and LSTM modelling and prediction process
+# - Changes in grid and scene results
 #####################################################################################################################################
 
 # ### Version
-version = "V21"
+version = "V22"
 
 
 
@@ -120,7 +124,7 @@ parser.add_argument('--from_date', dest='from_date', action='store', default="20
                    help="Date to end time series (it will forecast 5 days starting from this date)")
 parser.add_argument('--name', dest='name', action='store', default="erie",
                    help="Place where to save generated files")
-parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=180,
+parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=730,
                    help="Days threshold used to build the timeseries and training set")
 parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=5,
                    help="Day threshold to be used as input forecast")
@@ -130,8 +134,8 @@ parser.add_argument('--model', dest='model', action='store', default="rf",
                    help="Select the desired module: mlp, lstm, rf, svm or all (None)")
 parser.add_argument('--fill_missing', dest='fill_missing', action='store', default="time",
                    help="Defines algorithm to be used to fill empty dates and values: dummy, ffill, bfill, time, linear")
-parser.add_argument('--grid_size', dest='grid_size', action='store', type=int, default=12,
-                   help="Grid size that will be used in prediction")
+parser.add_argument('--grid_size', dest='grid_size', action='store', type=int, default=5,
+                   help="Grid size in pixels that will be used in grid-wise results")
 parser.add_argument('--remove_dummies', dest='remove_dummies', action='store_true',
                    help="Defines if the dummies will be removed before training (only works with fill_missing=dummy)")
 parser.add_argument('--reducer', dest='reducer', action='store_true',
@@ -144,10 +148,10 @@ parser.add_argument('--class_weight', dest='class_weight', action='store_true',
                    help="Defines whether classes will have defined weights for each")
 parser.add_argument('--propagate', dest='propagate', action='store_true',
                    help="Defines whether predictions will be propagated ahead")
-parser.add_argument('--rs_train_size', dest='rs_train_size', action='store', type=float, default=0.01,
-                   help="It allow increase th randomized search dataset training size")
+parser.add_argument('--rs_train_size', dest='rs_train_size', action='store', type=float, default=10000.0,
+                   help="It allow increase the randomized search dataset training size (it can be a floater or integer)")
 parser.add_argument('--rs_iter', dest='rs_iter', action='store', type=int, default=250,
-                   help="It allow increase th randomized search iteration size")
+                   help="It allow increase the randomized search iteration size")
 parser.add_argument('--pca_size', dest='pca_size', action='store', type=float, default=0.900,
                    help="Define PCA reducer variance size")
 parser.add_argument('--convolve', dest='convolve', action='store_true',
@@ -158,10 +162,10 @@ parser.add_argument('--disable_attribute_lat_lon', dest='disable_attribute_lat_l
                    help="Disable attributes lat and lons from training modeling")
 parser.add_argument('--disable_attribute_doy', dest='disable_attribute_doy', action='store_false',
                    help="Disable attribute doy from training modeling")
+parser.add_argument('--disable_shuffle', dest='disable_shuffle', action='store_false',
+                   help="Disable data shutffle before splitting into train and test matrix")
 parser.add_argument('--save_pairplots', dest='save_pairplots', action='store_true',
                    help="Save pairplots from attributes and indices")
-parser.add_argument('--save_grid', dest='save_grid', action='store_true',
-                   help="Save study area images grids")
 parser.add_argument('--save_train', dest='save_train', action='store_true',
                    help="Enable saving the training dataset (csv)")
 
@@ -247,7 +251,7 @@ try:
                       pca_size=args.pca_size,
                       attribute_lat_lon=args.disable_attribute_lat_lon,
                       attribute_doy=args.disable_attribute_doy,
-                      shuffle=True,
+                      shuffle=args.disable_shuffle,
                       test_mode=False)
 
   # preprocessing
@@ -260,10 +264,6 @@ try:
       os.mkdir(folder+"/pairplots")
     algorithm.save_attributes_pairplot(df=algorithm.df_timeseries,path=folder+"/pairplots/attributes.png")
     algorithm.save_indices_pairplot(df=algorithm.df_timeseries,path=folder+"/pairplots/indices.png")
-
-  # save grids
-  if args.save_grid == True:
-    algorithm.save_grid_plot(folder=folder+"/grids")
     
   # train/predict
   else:
@@ -273,6 +273,7 @@ try:
 
     # prediction results
     algorithm.save_dataset(df=algorithm.df_results, path=folder+'/results.csv')
+    algorithm.save_dataset(df=algorithm.df_scene, path=folder+'/results_scene.csv')
 
     # preprocessing results
     algorithm.save_dataset(df=algorithm.df_timeseries, path=folder+'/timeseries.csv')
