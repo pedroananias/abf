@@ -1496,7 +1496,9 @@ class Abf:
     df_predict                  = self.apply_label(self.fill_missing_dates(df=df_predict, min_date=min(self.predict_dates), max_date=max(self.predict_dates))).reset_index(drop=True)
 
     # fix values in dataframe - classification
-    df_classification           = self.fill_missing_dates(df=df_classification, min_date=min(self.classification_dates), max_date=max(self.classification_dates), fill=self.fill_missing).reset_index(drop=True)
+    # concat it with timeseries dataframe before doing the concatenation and remove the old dates after that
+    df_classification           = self.fill_missing_dates(df=pd.concat([self.df_timeseries,df_classification]), min_date=min(self.classification_dates), max_date=max(self.classification_dates), fill=self.fill_missing).reset_index(drop=True)
+    df_classification           = df_classification[df_classification['date']>=min(self.classification_dates)]
 
     # normalize indexes
     df_classification           = self.normalize_indices(df=df_classification)

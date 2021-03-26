@@ -85,10 +85,13 @@
 #
 # - Version 23:
 # - Fixes in scene plot results
+#
+# - Version 24:
+# - Fixes in the interpolation process of classification/prediction dataframe
 #####################################################################################################################################
 
 # ### Version
-version = "V23"
+version = "V24"
 
 
 
@@ -127,7 +130,7 @@ parser.add_argument('--from_date', dest='from_date', action='store', default="20
                    help="Date to end time series (it will forecast 5 days starting from this date)")
 parser.add_argument('--name', dest='name', action='store', default="erie",
                    help="Place where to save generated files")
-parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=365,
+parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=180,
                    help="Days threshold used to build the timeseries and training set")
 parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=5,
                    help="Day threshold to be used as input forecast")
@@ -151,7 +154,7 @@ parser.add_argument('--class_weight', dest='class_weight', action='store_true',
                    help="Defines whether classes will have defined weights for each")
 parser.add_argument('--propagate', dest='propagate', action='store_true',
                    help="Defines whether predictions will be propagated ahead")
-parser.add_argument('--rs_train_size', dest='rs_train_size', action='store', type=float, default=1000.0,
+parser.add_argument('--rs_train_size', dest='rs_train_size', action='store', type=float, default=500.0,
                    help="It allow increase the randomized search dataset training size (it can be a floater or integer)")
 parser.add_argument('--rs_iter', dest='rs_iter', action='store', type=int, default=250,
                    help="It allow increase the randomized search iteration size")
@@ -220,7 +223,7 @@ try:
   # ### ABF execution
 
   # folder to save results from algorithm at
-  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',g='+str(args.grid_size)+']'
+  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',g='+str(args.grid_size)+',ri='+str(args.rs_iter)+']'
   if not os.path.exists(folder):
     os.mkdir(folder)
 
