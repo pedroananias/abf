@@ -54,10 +54,10 @@ from modules import abf
 # Initialize Google Earth Engine
 ee.Initialize()
 
-# folder where to save results
+# Folder where to save results
 folder = "/path/to/desired/folder"
 
-# create algorithm object
+# Create algorithm object
 algorithm = abf.Abf(days_threshold=180,
                     grid_size=12,
                     sensor="modis", 
