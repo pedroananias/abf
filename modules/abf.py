@@ -119,7 +119,7 @@ class Abf:
   df_scene                    = None
 
   # hash
-  hash_string                 = "abf-20200925"
+  hash_string                 = "abf-20210329"
 
   # dates
   classification_dates        = None
@@ -133,8 +133,8 @@ class Abf:
   # constructor
   def __init__(self,
                geometry:          ee.Geometry,
-               days_threshold:    int           = 365,
-               grid_size:         int           = 5,
+               days_threshold:    int           = 180,
+               grid_size:         int           = 7,
                sensor:            str           = "modis",
                scale:             int           = None,
                path:              str           = None,
@@ -146,7 +146,7 @@ class Abf:
                convolve:          bool          = False,
                convolve_radius:   int           = 1,
                scaler:            str           = 'robust',
-               days_in:           int           = 5,
+               days_in:           int           = 1,
                days_out:          int           = 5,
                from_date:         str           = None,
                model:             str           = None,
@@ -158,8 +158,8 @@ class Abf:
                class_mode:        bool          = True,
                class_weight:      bool          = False,
                propagate:         bool          = False,
-               rs_train_size:     float         = 1000.0,
-               rs_iter:           int           = 250,
+               rs_train_size:     float         = 500.0,
+               rs_iter:           int           = 500,
                pca_size:          float         = 0.900,
                attribute_lat_lon: bool          = False,
                attribute_doy:     bool          = True,
@@ -367,7 +367,7 @@ class Abf:
     hydro_sheds           = ee.Image('WWF/HydroSHEDS/03DIR')
     alos                  = ee.Image("JAXA/ALOS/AW3D30/V2_2")
     modis_11A1            = ee.ImageCollection("MODIS/006/MOD11A1").filterBounds(self.geometry).filter(ee.Filter.date(date.strftime("%Y-%m-%d"), (date + td(days=1)).strftime("%Y-%m-%d"))).median().resample('bicubic').reproject(crs=image.projection(),scale=self.sensor_params['scale'])
-
+    
     # atributtes
     wind                  = gldas.select('Wind_f_inst').rename('wind')
     temperature           = gldas.select('SoilTMP0_10cm_inst').rename('temperature')
@@ -377,7 +377,7 @@ class Abf:
     pressure              = gldas.select('Psurf_f_inst').rename('pressure')
     evapotranspiration    = gldas.select('Evap_tavg').rename('evapotranspiration')
     emissivity            = modis_11A1.select('Emis_31').rename('emissivity')
-
+    
     # return imagem with the bands added
     return image.addBands([wind, temperature, drainage_direction, precipitation, elevation, pressure, evapotranspiration, emissivity])
     
@@ -394,7 +394,7 @@ class Abf:
     # define labels for two or more positive thresholds
     for indice in self.indices_thresholds:
       if indice in df.columns:
-        str_op = '>=' if indice not in self.attributes_inverse else '<'
+        str_op = '>' if indice not in self.attributes_inverse else '<='
         df_query = df.query(str(indice)+" "+str_op+" "+str(self.indices_thresholds[indice]))
         df.loc[df['index'].isin(df_query['index']), 'label'] = df_query['label']+1
 
