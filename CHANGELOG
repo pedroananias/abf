@@ -89,3 +89,4 @@ Version 24:
 
 Version 25:
 - Fixes in indice_threshold selection
+- Changed accuracy calculation method in grid-wise

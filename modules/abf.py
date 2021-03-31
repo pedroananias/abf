@@ -1554,9 +1554,16 @@ class Abf:
                        Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='magenta',fill=True),
                        Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='gray',fill=True),
                        Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='black',fill=True)]
+
+    # legends 2
+    legends_colors2 = [Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='gray',fill=True),
+                       Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='black',fill=True)]
     
     # legends captions
     legends_colors_captions = ['Regular', 'Anomaly', 'Land/Cloud/Shadow', 'Indetermined']
+
+    # legends captions 2
+    legends_colors_captions2 = ['Land/Cloud/Shadow', 'Indetermined']
 
     # clear scene results
     self.df_scene = pd.DataFrame({}, columns=self.df_columns_scene)
@@ -1808,12 +1815,13 @@ class Abf:
             count_pixels = len(df_true)
 
             # fix label value
-            df_true.loc[(df_true["label"]<len(attributes_clear)), 'label'] = 0
+            df_true.loc[(df_true["label"]>0) & (df_true["label"]<len(attributes_clear)), 'label'] = -1
+            df_true.loc[(df_true["label"]==0), 'label'] = 0
             df_true.loc[(df_true["label"]==len(attributes_clear)), 'label'] = 1
 
-            # calculation of anomalie occurrence based on pixel windows
+            # calculation of anomalie occurrence based on pixel windows (without indetermined)
             grid_size_ = int((self.grid_size - 1) / 2)
-            for i, row in df_true.iterrows():
+            for i, row in df_true[df_true["label"]!=-1].iterrows():
 
               # calculation of cols and rows to query de grid
               col_start   = row['column']-grid_size_
@@ -1839,6 +1847,7 @@ class Abf:
               s = c.scatter(df_true['lat'], df_true['lon'], marker='s', s=markersize_scatter, c=df_true['class'], cmap=plt.get_cmap('jet'), edgecolors='none')
               s.set_clim(colorbar_ticks[0], colorbar_ticks[-1])
               c.scatter(df_predict_clouds[(df_predict_clouds['date']==date)]['lat'], df_predict_clouds[(df_predict_clouds['date']==date)]['lon'], marker='s', s=markersize_scatter, c="gray", edgecolors='none')
+              c.scatter(df_true[df_true["label"]==-1]['lat'], df_true[df_true["label"]==-1]['lon'], marker='s', s=markersize_scatter, c="black", edgecolors='none')
             c.margins(x=0,y=0)
             plot_count += 1
 
@@ -1980,8 +1989,10 @@ class Abf:
             df_merge['class_predicted']   = 0
 
             # fix label value
-            df_merge.loc[(df_merge["label"]<len(attributes_clear)), 'label'] = 0
-            df_merge.loc[(df_merge["label"]==len(attributes_clear)), 'label'] = 1   
+            df_merge.loc[(df_merge["label"]>0) & (df_merge["label"]<len(attributes_clear)), 'label'] = -1
+            df_merge.loc[(df_merge["label"]==0), 'label'] = 0
+            df_merge.loc[(df_merge["label"]==len(attributes_clear)), 'label'] = 1
+            df_merge.loc[(df_merge["label_predicted"]>0) & (df_merge["label_predicted"]<len(attributes_clear)), 'label_predicted'] = -1
             df_merge.loc[(df_merge["label_predicted"]<len(attributes_clear)), 'label_predicted'] = 0
             df_merge.loc[(df_merge["label_predicted"]==len(attributes_clear)), 'label_predicted'] = 1
 
@@ -2008,10 +2019,10 @@ class Abf:
                 pct_occurrence = pct_occurrence if pct_occurrence > 0 else 0
                 df_merge.loc[(df_merge['index'].isin(df_grid['index'].values)), 'class_predicted'] = pct_occurrence
 
-            # measures
-            if len(df_merge) > 0:
-              y_pred = df_merge['class'].values
-              y_true = df_merge['class_predicted'].values
+            # measures (without the indetermined)
+            if len(df_merge[df_merge["label"]!=-1]) > 0:
+              y_pred = df_merge[df_merge["label"]!=-1]['class'].values
+              y_true = df_merge[df_merge["label"]!=-1]['class_predicted'].values
             else:
               y_pred = [0]
               y_true = [100]
@@ -2239,10 +2250,15 @@ class Abf:
         # others
         else:
 
-          # grid colobar - [left, bottom, width, height]
+          # grid colobar and legend - [left, bottom, width, height]
           if plot_type == "grid":
+            
+            # colobar
             cbar = fig.colorbar(images_grid[-1], cax=fig.add_axes([0.601, 0.055, 0.30, 0.025]), ticks=colorbar_ticks, orientation='horizontal')
             cbar.set_label("% of occurrence")
+
+            # legend
+            plt.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(-1.30, 0.4), ncol=4, fontsize='x-small', fancybox=True, shadow=True)
 
           # other
           fig.savefig(folder+'/image/results_'+str(plot_type)+'_'+str(model_short)+'.png')
