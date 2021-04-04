@@ -62,6 +62,7 @@ warnings.filterwarnings("ignore")
 class Abf:
 
   # configuration
+  name                        = "Anomalous Behaviour Forecast"
   anomaly                     = 1
   dummy                       = -99999
   cloud_threshold             = 0.50 # only images where clear pixels are greater thans 50%
@@ -107,13 +108,14 @@ class Abf:
   df_columns                  = ['pixel','index','row','column','date','doy','lat','lon']+attributes
   df_columns_clear            = ['pixel','index','row','column','date','doy','lat','lon']+attributes_clear
   df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'attribute_lat_lon', 'attribute_doy', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'r2score', 'tp', 'tn', 'fp', 'fn']
-  df_columns_scene            = ['date','model','ground_truth', 'prediction', 'difference']
+  df_columns_scene            = ['date','model','validation', 'prediction', 'difference']
   df_timeseries               = None
   df_timeseries_scene         = None
   df_timeseries_grid          = None
   df_train                    = [None,None]
   df_test                     = [None,None]
   df_randomizedsearch         = [None,None]
+  df_classification           = None
   df_results                  = None
   df_pretraining              = None
   df_scene                    = None
@@ -129,6 +131,7 @@ class Abf:
   classifiers                 = {}
   classifiers_runtime         = {}
   predictions                 = {}
+  merges                      = {}
 
   # constructor
   def __init__(self,
@@ -1517,15 +1520,18 @@ class Abf:
     if self.reducer:
       X = self.reducer.transform(X)
 
+    # building array of final classification dataframe
+    self.df_classification      = X
+
     # Final statistics
-    print("Prediction datasets length: classification=(%s), predict=(%s, %s)" %(X.shape, len(df_predict), len(df_predict.columns)))
+    print("Prediction datasets length: classification=(%s), predict=(%s, %s)" %(self.df_classification.shape, len(df_predict), len(df_predict.columns)))
 
     # go through all dates to save geojson
     features = []
     for index, row in df_predict.iterrows():
       features.append(geojson.Feature(geometry=geojson.Point((float(row['lat']), float(row['lon']))), properties={"index": int(index), "date": row['date'].strftime('%Y-%m-%d'), "label": int(row['label']), "cloud": int(row['cloud'])}))
     fc = geojson.FeatureCollection(features)
-    f = open(folder+"/geojson/ground_truth.json","w")
+    f = open(folder+"/geojson/validation.json","w")
     geojson.dump(fc, f)
     f.close()
 
@@ -1746,11 +1752,11 @@ class Abf:
 
         # Title
         if plot_type == "pixel":
-          plt.title("Anomalous Behaviour pixel-wise forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
+          plt.title(self.name+": pixel-wise from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
         elif plot_type == "grid":
-          plt.title("Anomalous Behaviour bloom grid-wise ("+str(self.grid_size)+"x"+str(self.grid_size)+") forecast from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
+          plt.title(self.name+": grid-wise ("+str(self.grid_size)+"x"+str(self.grid_size)+") from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
         elif plot_type == "scene":
-          plt.title("Anomalous Behaviour bloom scene-wise occurrence from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
+          plt.title(self.name+": scene-wise occurrences from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
 
         # go through all dates to get rgb images
         for date in self.predict_dates:
@@ -1790,9 +1796,9 @@ class Abf:
             for index, color in enumerate(color_map):
               df_true.loc[(df_true['label'] == index), 'color'] = color[0]
 
-            # plot ground truth results
+            # plot validation results
             c = fig.add_subplot(3,len(self.predict_dates),plot_count)
-            c.set_title("Ground Truth", fontdict = {'fontsize' : 4.5})
+            c.set_title("Validation", fontdict = {'fontsize' : 4.5})
             c.set_xticks(xticks)
             c.set_yticks(yticks)
             c.grid(color='b', linestyle='dashed', linewidth=0.1)
@@ -1836,7 +1842,7 @@ class Abf:
 
             # plot
             c = fig.add_subplot(3,len(self.predict_dates),plot_count)
-            c.set_title("Ground Truth ("+str(self.grid_size)+"x"+str(self.grid_size)+")", fontdict = {'fontsize' : 4.5})
+            c.set_title("Validation ("+str(self.grid_size)+"x"+str(self.grid_size)+")", fontdict = {'fontsize' : 4.5})
             c.set_xticks(xticks)
             c.set_yticks(yticks)
             c.grid(color='b', linestyle='dashed', linewidth=0.1)
@@ -2115,6 +2121,12 @@ class Abf:
             # save dataframes
             df_merge.to_csv(folder+'/csv/df_prediction_'+str(model_short)+'_'+str(date.strftime("%Y-%m-%d"))+'.csv')
 
+            # save merge in dataframe
+            if not model in self.merges:
+              self.merges[model] = df_merge
+            else:
+              self.merges[model] = self.merges[model].append(df_merge, ignore_index=True)
+
           # scene
           elif plot_type == 'scene':
 
@@ -2156,7 +2168,7 @@ class Abf:
             dict_results_scene.append({
               'date': date.strftime("%Y-%m-%d"),
               'model': str(model_short),
-              'ground_truth': pct_true,
+              'validation': pct_true,
               'prediction': pct_pred,
               'difference': pct_pred-pct_true
             })
@@ -2221,16 +2233,16 @@ class Abf:
 
           # creat plots
           ax_ = fig.add_subplot(1,1,1)
-          ax  = self.df_scene[['ground_truth','prediction']].plot(kind='bar', width=.5, ax=ax_)
-          ax2 = self.df_scene['difference'].plot(secondary_y=True, color='black', ax=ax_)
+          ax  = self.df_scene[['validation','prediction']].plot(kind='bar', width=.5, ax=ax_)
+          ax2 = self.df_scene['difference'].plot(secondary_y=True, color='red', ax=ax_)
 
           # line at 0
-          plt.plot([-10,100],[0,0],":",color="black")
+          plt.plot([-10,100],[0,0],"--",color="black", lw=0.5)
 
           # adjust ticks
           ax.set_xticklabels((self.df_scene['date'].values))
           ax.set_xlim(-1,len(self.df_scene['date'].values))
-          ax.set_ylim(self.df_scene['difference'].min(),self.df_scene['ground_truth'].max()+1 if self.df_scene['ground_truth'].max() > self.df_scene['prediction'].max() else self.df_scene['prediction'].max()+1)
+          ax.set_ylim(self.df_scene['difference'].min(),self.df_scene['validation'].max()+1 if self.df_scene['validation'].max() > self.df_scene['prediction'].max() else self.df_scene['prediction'].max()+1)
           ax2.set_ylim(ax.get_ylim())
           ax2.set_yticks([])
 
@@ -2240,9 +2252,9 @@ class Abf:
           
           # fix legend
           handles, labels = ax.get_legend_handles_labels()
-          handles.append(Line2D([0], [0], color="black", lw=1, label="difference"))
+          handles.append(Line2D([0], [0], color="red", lw=0.5))
           ax.get_legend().remove()
-          plt.legend(handles=handles, loc='upper right', fancybox=True, shadow=True)
+          plt.legend(handles=handles, labels=["Validation","Prediction","Difference"], loc='upper right', fancybox=True, shadow=True)
 
           # save plot
           fig.savefig(folder+'/image/results_'+str(plot_type)+'_'+str(model_short)+'.png', bbox_inches='tight')
@@ -2268,6 +2280,431 @@ class Abf:
 
     # save results
     self.df_results = pd.DataFrame(dict_results, columns=self.df_columns_results)
+
+    # warning
+    print('finished!')
+
+
+  # calculate prediction reduction performance (mean, median and mode)
+  def predict_reduction(self, folder: str):
+
+    # jump line
+    print()
+    print("Starting the prediction reduction performance calculation (mean, median and mode)...")
+
+    # types of plots
+    types = ['Mean','Median', 'Mode']
+        
+    # plot configuration
+    image_empty_clip_io         = PIL.Image.open(BytesIO(requests.get(self.clip_image(ee.Image([99999,99999,99999])).select(['constant','constant_1','constant_2']).getThumbUrl({'min':0, 'max':99999}), timeout=60).content))
+    markersize_scatter          = (72./300)*((self.scale/self.resolution[0])*4)
+    xticks                      = np.linspace(self.sample_lon_lat[0][1], self.sample_lon_lat[1][1], num=self.plots_grid+1)
+    yticks                      = np.linspace(self.sample_lon_lat[0][0], self.sample_lon_lat[1][0], num=self.plots_grid+1)
+
+    # colormap
+    color_map                   = np.empty((5,1), dtype=object)
+    color_map[0]                = "cyan"
+    color_map[1]                = "magenta"
+
+    # colorbar tixks
+    colorbar_ticks_max          = 100
+    colorbar_ticks              = np.linspace(0, colorbar_ticks_max if colorbar_ticks_max > 1 else 2, num=11, dtype=int)
+    colorbar_ticks_labels       = [str(l) for l in colorbar_ticks]
+    colorbar_ticks_labels[-1]   = str(colorbar_ticks_labels[-1])
+
+    # legends
+    legends_colors = [Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='cyan',fill=True),
+                      Rectangle((0, 0),1,1,linewidth=0,edgecolor=None,facecolor='magenta',fill=True)]
+
+    # legends captions
+    legends_colors_captions = ['Regular', 'Anomaly']
+
+    # start an empty result dictionary
+    dict_results = []
+
+    # check if there are one or predictions
+    if not self.merges is None and len(self.merges)>0:
+
+      # go over each ML model
+      for model in self.merges:
+
+        # model str 2
+        model_short = ''
+        if 'MLP' in model:
+          model_short = 'mlp'
+        elif 'LSTM' in model:
+          model_short = 'lstm'
+        elif 'RF' in model:
+          model_short = 'rf'
+        elif 'SVM' in model:
+          model_short = 'svm'
+
+        # fix merges
+        self.merges[model]  = self.merges[model].apply(pd.to_numeric, errors='ignore')
+
+        # reductions
+        df_mean             = self.merges[model].groupby(['lat','lon']).mean().reset_index()
+        df_median           = self.merges[model].groupby(['lat','lon']).median().reset_index()
+        df_mode             = self.merges[model].groupby(['lat','lon']).agg(lambda x:pd.to_numeric(x, errors='ignore').value_counts().index[0]).reset_index()
+
+        # fix scenes
+        self.df_scene       = self.df_scene.apply(pd.to_numeric, errors='ignore')
+
+        # reductions - scene
+        df_scene_mean       = self.df_scene[self.df_scene['model']==model_short].groupby(['model']).mean().reset_index()
+        df_scene_median     = self.df_scene[self.df_scene['model']==model_short].groupby(['model']).median().reset_index()
+        df_scene_mode       = self.df_scene[self.df_scene['model']==model_short].groupby(['model']).agg(lambda x:pd.to_numeric(x, errors='ignore').value_counts().index[0]).reset_index()
+
+        # adjusts for mean calculation
+        df_mean.loc[(df_mean['label'] > 0.5), 'label']                          = 1
+        df_mean.loc[(df_mean['label'] <= 0.5), 'label']                         = 0
+        df_mean.loc[(df_mean['label_predicted'] > 0.5), 'label_predicted']      = 1
+        df_mean.loc[(df_mean['label_predicted'] <= 0.5), 'label_predicted']     = 0
+
+        # adjusts for median calculation
+        df_median.loc[(df_median['label'] > 0.5), 'label']                      = 1
+        df_median.loc[(df_median['label'] <= 0.5), 'label']                     = 0
+        df_median.loc[(df_median['label_predicted'] > 0.5), 'label_predicted']  = 1
+        df_median.loc[(df_median['label_predicted'] <= 0.5), 'label_predicted'] = 0
+
+        # adjusts for mode calculation
+        df_mode.loc[(df_mode['label'] > 0.5), 'label']                          = 1
+        df_mode.loc[(df_mode['label'] <= 0.5), 'label']                         = 0
+        df_mode.loc[(df_mode['label_predicted'] > 0.5), 'label_predicted']      = 1
+        df_mode.loc[(df_mode['label_predicted'] <= 0.5), 'label_predicted']     = 0
+
+        # apply colors
+        df_mean['color']              = 'black'
+        df_mean['color_predicted']    = 'black'
+        df_median['color']            = 'black'
+        df_median['color_predicted']  = 'black'
+        df_mode['color']              = 'black'
+        df_mode['color_predicted']    = 'black'
+        for index, color in enumerate(color_map):
+          df_mean.loc[(df_mean['label'] == index), 'color']                         = color[0]
+          df_mean.loc[(df_mean['label_predicted'] == index), 'color_predicted']     = color[0]
+          df_median.loc[(df_mean['label'] == index), 'color']                       = color[0]
+          df_median.loc[(df_mean['label_predicted'] == index), 'color_predicted']   = color[0]
+          df_mode.loc[(df_mean['label'] == index), 'color']                         = color[0]
+          df_mode.loc[(df_mean['label_predicted'] == index), 'color_predicted']     = color[0]
+            
+        # dataframes - pixel and grid-wise
+        df_types  = [df_mean,df_median,df_mode]
+        df_scenes = [df_scene_mean,df_scene_median,df_scene_mode]
+
+        # create figure
+        plot_count = 1
+        fig = plt.figure(figsize=(8,15), dpi=300)
+        plt.tight_layout(pad=10.0)
+        plt.rc('xtick',labelsize=4)
+        plt.rc('ytick',labelsize=4)
+        plt.box(False)
+        plt.axis('off')
+
+        # title
+        plt.title(self.name+": pixel/grid/scene-wise reductions (mean, median and mode) from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 8}, pad=30)
+
+        # Pixel-wise (Validation)
+        for i, df_type in enumerate(df_types):
+          c = fig.add_subplot(5,3,plot_count)
+          c.set_title("Validation ("+str(types[i])+")", fontdict = {'fontsize' : 4.5})
+          c.set_xticks(xticks)
+          c.set_yticks(yticks)
+          c.grid(color='b', linestyle='dashed', linewidth=0.1)
+          c.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+          c.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+          c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
+          c.scatter(df_type['lat'], df_type['lon'], marker='s', s=markersize_scatter, c=df_type['color'].values, edgecolors='none')
+          c.margins(x=0,y=0)
+          plot_count += 1
+            
+        # Legends
+        c.legend(legends_colors, legends_colors_captions, loc='upper center', bbox_to_anchor=(-0.71, -0.20), ncol=4, fontsize='xx-small', fancybox=True, shadow=True)
+            
+        # Pixel-wise (Prediction)
+        for i, df_type in enumerate(df_types):
+
+          # measures
+          # warning
+          print()
+          print("[Pixel-"+str(types[i])+"] Evaluating reduction...")
+
+          # labels arrays
+          if len(df_type) > 0:
+            y_pred = df_type['label_predicted'].values.reshape((-1, 1))
+            y_true = df_type['label'].values.reshape((-1, 1))
+          else:
+            y_pred = [0]
+            y_true = [1]
+
+          # report
+          measures = misc.concordance_measures(metrics.confusion_matrix(y_true, y_pred), y_true, y_pred)
+          print(measures['string'])
+
+          # add results - pixel
+          dict_results.append({
+            'model':            str(model),
+            'type':             "pixel-"+str(types[i]),
+            'sensor':           str(self.sensor),
+            'path':             str(self.path),
+            'date_predicted':   self.predict_dates[0].strftime("%Y-%m-%d"),
+            'date_execution':   dt.now().strftime("%Y-%m-%d"),
+            'time_execution':   dt.now().strftime("%H:%M:%S"),
+            'runtime':          str(self.classifiers_runtime[model]),
+            'days_threshold':   str(self.days_threshold), 
+            'grid_size':        str(self.grid_size),
+            'size_train':       str("D="+str(self.df_train[0].shape)+"Dy="+str(self.df_train[0].shape)+";R="+str(self.df_randomizedsearch[0].shape)+";Ry="+str(self.df_randomizedsearch[1].shape)),
+            'size_dates':       str(len(self.dates_timeseries_interval)),
+            'scaler':           str(self.scaler_str),
+            'morph_op':         str(self.morph_op),
+            'morph_op_iters':   str(self.morph_op_iters),
+            'convolve':         str(self.convolve),
+            'convolve_radius':  str(self.convolve_radius),
+            'days_in':          str(self.days_in), 
+            'days_out':         str(self.days_out), 
+            'fill_missing':     str(self.fill_missing), 
+            'remove_dummies':   str(self.remove_dummies), 
+            'shuffle':          str(self.shuffle), 
+            'reducer':          str(self.reducer), 
+            'normalized':       str(self.normalized), 
+            'class_mode':       str(self.class_mode), 
+            'class_weight':     str(self.class_weight), 
+            'propagate':        str(self.propagate), 
+            'rs_train_size':    str(self.rs_train_size), 
+            'rs_iter':          str(self.rs_iter), 
+            'pca_size':         str(self.pca_size),
+            'attribute_lat_lon':str(self.attribute_lat_lon),
+            'attribute_doy':    str(self.attribute_doy),
+            'acc':              float(measures["acc"]),
+            'bacc':             float(measures["bacc"]),
+            'kappa':            float(measures["kappa"]),
+            'vkappa':           float(measures["vkappa"]),
+            'tau':              float(measures["tau"]),
+            'vtau':             float(measures["vtau"]),
+            'mcc':              float(measures["mcc"]),
+            'f1score':          float(measures["f1score"]),
+            'rmse':             float(measures["rmse"]),
+            'mae':              float(measures["mae"]),
+            'r2score':          float(measures["r2score"]),
+            'tp':               int(measures["tp"]),
+            'tn':               int(measures["tn"]),
+            'fp':               int(measures["fp"]),
+            'fn':               int(measures["fn"])
+          })
+
+          # plot
+          c = fig.add_subplot(5,3,plot_count)
+          c.set_title("Prediction ("+str(types[i])+";Acc:"+str(round(measures["acc"],2))+",Kpp:"+str(round(measures["kappa"],2))+",MCC:"+str(round(measures["mcc"],2))+",F1:"+str(round(measures["f1score"],2))+")", fontdict = {'fontsize' : 4.5})
+          c.set_xticks(xticks)
+          c.set_yticks(yticks)
+          c.grid(color='b', linestyle='dashed', linewidth=0.1)
+          c.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+          c.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+          c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
+          c.scatter(df_type['lat'], df_type['lon'], marker='s', s=markersize_scatter, c=df_type['color_predicted'].values, edgecolors='none')
+          c.margins(x=0,y=0)
+          plot_count += 1
+              
+        # Grid-wise (Validation)
+        for i, df_type in enumerate(df_types):
+          c = fig.add_subplot(5,3,plot_count)
+          c.set_title("Validation ("+str(types[i])+" - "+str(self.grid_size)+"x"+str(self.grid_size)+")", fontdict = {'fontsize' : 4.5})
+          c.set_xticks(xticks)
+          c.set_yticks(yticks)
+          c.grid(color='b', linestyle='dashed', linewidth=0.1)
+          c.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+          c.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+          c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
+          s = c.scatter(df_type['lat'], df_type['lon'], marker='s', s=markersize_scatter, c=df_type['class'], cmap=plt.get_cmap('jet'), edgecolors='none')
+          s.set_clim(colorbar_ticks[0], colorbar_ticks[-1])
+          c.margins(x=0,y=0)
+          plot_count += 1
+            
+        # Grid-wise (Prediction)
+        for i, df_type in enumerate(df_types):
+
+          # measures
+          # warning
+          print()
+          print("[Grid-"+str(types[i])+"] Evaluating reduction...")
+
+          # measures
+          if len(df_type) > 0:
+            y_pred = df_type['class'].astype(int).values
+            y_true = df_type['class_predicted'].astype(int).values
+          else:
+            y_pred = [0]
+            y_true = [100]
+            
+          # report
+          measures = misc.concordance_measures(metrics.confusion_matrix(y_true, y_pred), y_true, y_pred)
+          print(measures['string'])
+
+          # add results - grid
+          dict_results.append({
+            'model':            str(model),
+            'type':             "grid-"+str(types[i]),
+            'sensor':           str(self.sensor),
+            'path':             str(self.path),
+            'date_predicted':   self.predict_dates[0].strftime("%Y-%m-%d"),
+            'date_execution':   dt.now().strftime("%Y-%m-%d"),
+            'time_execution':   dt.now().strftime("%H:%M:%S"),
+            'runtime':          str(self.classifiers_runtime[model]),
+            'days_threshold':   str(self.days_threshold), 
+            'grid_size':        str(self.grid_size),
+            'size_train':       str("D="+str(self.df_train[0].shape)+"Dy="+str(self.df_train[0].shape)+";R="+str(self.df_randomizedsearch[0].shape)+";Ry="+str(self.df_randomizedsearch[1].shape)),
+            'size_dates':       str(len(self.dates_timeseries_interval)),
+            'scaler':           str(self.scaler_str),
+            'morph_op':         str(self.morph_op),
+            'morph_op_iters':   str(self.morph_op_iters),
+            'convolve':         str(self.convolve),
+            'convolve_radius':  str(self.convolve_radius),
+            'days_in':          str(self.days_in), 
+            'days_out':         str(self.days_out), 
+            'fill_missing':     str(self.fill_missing), 
+            'remove_dummies':   str(self.remove_dummies), 
+            'shuffle':          str(self.shuffle), 
+            'reducer':          str(self.reducer), 
+            'normalized':       str(self.normalized), 
+            'class_mode':       str(self.class_mode), 
+            'class_weight':     str(self.class_weight), 
+            'propagate':        str(self.propagate), 
+            'rs_train_size':    str(self.rs_train_size), 
+            'rs_iter':          str(self.rs_iter), 
+            'pca_size':         str(self.pca_size),
+            'attribute_lat_lon':str(self.attribute_lat_lon),
+            'attribute_doy':    str(self.attribute_doy),
+            'acc':              float(measures["acc"]),
+            'bacc':             float(measures["bacc"]),
+            'kappa':            float(measures["kappa"]),
+            'vkappa':           float(measures["vkappa"]),
+            'tau':              float(measures["tau"]),
+            'vtau':             float(measures["vtau"]),
+            'mcc':              float(measures["mcc"]),
+            'f1score':          float(measures["f1score"]),
+            'rmse':             float(measures["rmse"]),
+            'mae':              float(measures["mae"]),
+            'r2score':          float(measures["r2score"]),
+            'tp':               int(measures["tp"]),
+            'tn':               int(measures["tn"]),
+            'fp':               int(measures["fp"]),
+            'fn':               int(measures["fn"])
+          })
+
+          # plot
+          c = fig.add_subplot(5,3,plot_count)
+          c.set_title("Prediction ("+str(types[i])+";RMSE:"+str(round(measures["rmse"],2))+",MAE:"+str(round(measures["mae"],2))+",R^2:"+str(round(measures["r2score"],2))+")", fontdict = {'fontsize' : 4.5})
+          c.set_xticks(xticks)
+          c.set_yticks(yticks)
+          c.grid(color='b', linestyle='dashed', linewidth=0.1)
+          c.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+          c.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+          c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
+          s = c.scatter(df_type['lat'], df_type['lon'], marker='s', s=markersize_scatter, c=df_type['class_predicted'], cmap=plt.get_cmap('jet'), edgecolors='none')
+          s.set_clim(colorbar_ticks[0], colorbar_ticks[-1])
+          c.margins(x=0,y=0)
+          plot_count += 1
+
+        # colobar
+        cbar = fig.colorbar(s, cax=fig.add_axes([0.38, 0.425, 0.258, 0.005]), ticks=colorbar_ticks, orientation='horizontal')
+            
+        # Scene-wise (Validation X Prediction)
+        min_difference = (min(df_scenes[0]['difference'].min(),df_scenes[1]['difference'].min(),df_scenes[2]['difference'].min())) - 10
+        for i, df_scene in enumerate(df_scenes):
+
+            # measures
+            # warning
+            print()
+            print("[Scene-"+str(types[i])+"] Evaluating reduction...")
+
+            # measures
+            if len(df_scene)>0:
+              y_true  = [df_scene['validation'].astype(int)]
+              y_pred  = [df_scene['prediction'].astype(int)]
+            else:
+              y_true  = [0]
+              y_pred  = [100]
+
+            # report
+            measures = misc.concordance_measures(metrics.confusion_matrix(y_true, y_pred), y_true, y_pred)
+            print(measures['string'])
+
+            # add results - scene
+            dict_results.append({
+              'model':            str(model),
+              'type':             "scene-"+str(types[i]),
+              'sensor':           str(self.sensor),
+              'path':             str(self.path),
+              'date_predicted':   self.predict_dates[0].strftime("%Y-%m-%d"),
+              'date_execution':   dt.now().strftime("%Y-%m-%d"),
+              'time_execution':   dt.now().strftime("%H:%M:%S"),
+              'runtime':          str(self.classifiers_runtime[model]),
+              'days_threshold':   str(self.days_threshold), 
+              'grid_size':        str(self.grid_size),
+              'size_train':       str("D="+str(self.df_train[0].shape)+"Dy="+str(self.df_train[0].shape)+";R="+str(self.df_randomizedsearch[0].shape)+";Ry="+str(self.df_randomizedsearch[1].shape)),
+              'size_dates':       str(len(self.dates_timeseries_interval)),
+              'scaler':           str(self.scaler_str),
+              'morph_op':         str(self.morph_op),
+              'morph_op_iters':   str(self.morph_op_iters),
+              'convolve':         str(self.convolve),
+              'convolve_radius':  str(self.convolve_radius),
+              'days_in':          str(self.days_in), 
+              'days_out':         str(self.days_out), 
+              'fill_missing':     str(self.fill_missing), 
+              'remove_dummies':   str(self.remove_dummies), 
+              'shuffle':          str(self.shuffle), 
+              'reducer':          str(self.reducer), 
+              'normalized':       str(self.normalized), 
+              'class_mode':       str(self.class_mode), 
+              'class_weight':     str(self.class_weight), 
+              'propagate':        str(self.propagate), 
+              'rs_train_size':    str(self.rs_train_size), 
+              'rs_iter':          str(self.rs_iter), 
+              'pca_size':         str(self.pca_size),
+              'attribute_lat_lon':str(self.attribute_lat_lon),
+              'attribute_doy':    str(self.attribute_doy),
+              'acc':              float(measures["acc"]),
+              'bacc':             float(measures["bacc"]),
+              'kappa':            float(measures["kappa"]),
+              'vkappa':           float(measures["vkappa"]),
+              'tau':              float(measures["tau"]),
+              'vtau':             float(measures["vtau"]),
+              'mcc':              float(measures["mcc"]),
+              'f1score':          float(measures["f1score"]),
+              'rmse':             float(measures["rmse"]),
+              'mae':              float(measures["mae"]),
+              'r2score':          float(measures["r2score"]),
+              'tp':               int(measures["tp"]),
+              'tn':               int(measures["tn"]),
+              'fp':               int(measures["fp"]),
+              'fn':               int(measures["fn"])
+            })
+
+            # plot
+            c = fig.add_subplot(5,3,plot_count)
+            c.set_title("Scene ("+str(types[i])+";RMSE:"+str(round(measures["rmse"],2))+",MAE:"+str(round(measures["mae"],2))+",R^2:"+str(round(measures["r2score"],2))+")", fontdict = {'fontsize' : 4.5})
+            c1 = df_scene[['validation','prediction']].plot(kind='bar', width=.5, ax=c)
+            c2 = plt.plot([-10,100],[df_scene['difference'],df_scene['difference']],"-",color="red", lw=0.5)
+            c3 = plt.plot([-10,100],[0,0],"--",color="black", lw=0.5)
+            c.set_xticklabels([])
+            c.set_xticks([])
+            c.set_ylim(min_difference, df_scene['validation'].max()+1 if df_scene['validation'].max() > df_scene['prediction'].max() else df_scene['prediction'].max()+1)
+            if i==0:
+                c.set_ylabel('% of occurrence', fontdict = {'fontsize' : 4.5})
+            if i==len(df_scenes)-1:
+                handles, labels = c1.get_legend_handles_labels()
+                handles.append(Line2D([0], [0], color="red", lw=0.5))
+                c1.get_legend().remove()
+                plt.legend(handles=handles, labels=["Validation","Prediction","Difference"], loc='lower right', bbox_to_anchor=(-0.10, -0.20), ncol=3, fancybox=True, shadow=True, fontsize='xx-small')
+            else:
+                plt.legend().remove()
+            plot_count += 1
+
+        # other
+        fig.savefig(folder+'/image/results_reduction_'+str(model_short)+'.png')
+
+      # save results
+      self.df_results = self.df_results.append(dict_results)
 
     # warning
     print('finished!')

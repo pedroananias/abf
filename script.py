@@ -56,6 +56,8 @@ parser.add_argument('--model', dest='model', action='store', default="rf",
                    help="Select the desired module: mlp, lstm, rf, svm or all (None)")
 parser.add_argument('--fill_missing', dest='fill_missing', action='store', default="time",
                    help="Defines algorithm to be used to fill empty dates and values: dummy, ffill, bfill, time, linear")
+parser.add_argument('--scaler', dest='scaler', action='store', default="robust",
+                   help="Defines algorithm to be used in the data scalling process: robust, minmax or standard")
 parser.add_argument('--grid_size', dest='grid_size', action='store', type=int, default=7,
                    help="Grid size in pixels that will be used in grid-wise results")
 parser.add_argument('--remove_dummies', dest='remove_dummies', action='store_true',
@@ -139,14 +141,14 @@ try:
   # ### ABF execution
 
   # folder to save results from algorithm at
-  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',g='+str(args.grid_size)+',ri='+str(args.rs_iter)+',all='+str(args.disable_attribute_lat_lon)+']'
+  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',g='+str(args.grid_size)+',ri='+str(args.rs_iter)+',all='+str(args.disable_attribute_lat_lon)+',cw='+str(args.class_weight)+',pg='+str(args.propagate)+',s='+str(args.scaler)+']'
   if not os.path.exists(folder):
     os.mkdir(folder)
 
   # create algorithm
   algorithm = abf.Abf(days_threshold=args.days_threshold,
                       grid_size=args.grid_size,
-                      sensor="modis", 
+                      sensor="modis",
                       geometry=geometry,
                       lat_lon=args.lat_lon,
                       path=folder,
@@ -156,7 +158,7 @@ try:
                       morph_op_iters=1,
                       convolve=args.convolve,
                       convolve_radius=args.convolve_radius,
-                      scaler='robust',
+                      scaler=args.scaler,
                       days_in=args.days_in,
                       days_out=args.days_out,
                       from_date=args.from_date,
@@ -191,7 +193,11 @@ try:
   else:
     algorithm.train(batch_size=2048, disable_gpu=True)
     algorithm.predict(folder=folder+"/prediction")
-    algorithm.validate_using_roi(path='users/pedroananias/'+str(args.name), rois=['date_sensor_regular', 'date_sensor_anomaly'], labels=[0, 1])
+    algorithm.predict_reduction(folder=folder+"/prediction")
+
+    # check if it is Lake Erie (the only one that has ROI to validate with)
+    if args.name == "erie":
+      algorithm.validate_using_roi(path='users/pedroananias/'+str(args.name), rois=['date_sensor_regular', 'date_sensor_anomaly'], labels=[0, 1])
 
     # prediction results
     algorithm.save_dataset(df=algorithm.df_results, path=folder+'/results.csv')
@@ -206,6 +212,7 @@ try:
       algorithm.save_dataset(df=pd.DataFrame(algorithm.df_train[1]), path=folder+'/df_train_y.csv')
       algorithm.save_dataset(df=pd.DataFrame(algorithm.df_test[0]), path=folder+'/df_test_X.csv')
       algorithm.save_dataset(df=pd.DataFrame(algorithm.df_test[1]), path=folder+'/df_test_y.csv')
+      algorithm.save_dataset(df=pd.DataFrame(algorithm.df_classification), path=folder+'/df_classification_X.csv')
 
   # results
   # add results and save it on disk

@@ -9,17 +9,19 @@ SCRIPT="script.py"
 CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ARRAYS - FULL
-declare -a DAYS_THRESHOLD=("180") # "90" "180" "365" "730"
-declare -a DAYS_IN_OUT=("--days_in=1 --days_out=5")
+declare -a DAYS_THRESHOLD=("90" "180") # "90" "180" "365" "730"
+declare -a DAYS_IN_OUT=("--days_in=1 --days_out=5" "--days_in=2 --days_out=5" "--days_in=3 --days_out=5" "--days_in=4 --days_out=5" "--days_in=5 --days_out=5" "--days_in=10 --days_out=5" "--days_in=15 --days_out=5" "--days_in=30 --days_out=5")
 declare -a GRID_SIZE=("--grid_size=7")
 declare -a MODELS=("rf") # "rf" "svm" "mlp" "lstm"
 declare -a FILLS_MISSING=("--fill_missing=time")
 declare -a REDUCER=("--reducer --pca_size=0.900")
-declare -a CLASS_MODE=("--class_mode")
+declare -a CLASS_MODE=("--class_mode" "--class_mode --class_weight")
 declare -a NORMALIZE=("")
 declare -a RS_TRAIN_SIZES=("--rs_train_size=500.0")
 declare -a RS_ITERS=("--rs_iter=500")
-declare -a ATTR=("" "--disable_attribute_lat_lon")
+declare -a ATTR=("--disable_attribute_lat_lon")
+declare -a PROPAGATE=("" "--propagate")
+declare -a SCALER=("--scaler=robust" "--scaler=minmax" "--scaler=standard")
 
 # SHOW BASE DIR
 echo "$PYTHON $BASEDIR/$SCRIPT"
@@ -53,7 +55,13 @@ do
 								do
 									for normalized in "${NORMALIZE[@]}"
 									do
-										eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr"
+										for propagate in "${PROPAGATE[@]}"
+										do
+											for scaler in "${SCALER[@]}"
+											do
+												eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+											done
+										done
 									done
 								done
 							done
@@ -100,7 +108,13 @@ do
 									do
 										for normalized in "${NORMALIZE[@]}"
 										do
-											eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr"
+											for propagate in "${PROPAGATE[@]}"
+											do
+												for scaler in "${SCALER[@]}"
+												do
+													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+												done
+											done
 										done
 									done
 								done
@@ -146,7 +160,13 @@ do
 								do
 									for normalized in "${NORMALIZE[@]}"
 									do
-										eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr"
+										for propagate in "${PROPAGATE[@]}"
+										do
+											for scaler in "${SCALER[@]}"
+											do
+												eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+											done
+										done
 									done
 								done
 							done
@@ -193,7 +213,13 @@ do
 									do
 										for normalized in "${NORMALIZE[@]}"
 										do
-											eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr"
+											for propagate in "${PROPAGATE[@]}"
+											do
+												for scaler in "${SCALER[@]}"
+												do
+													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+												done
+											done
 										done
 									done
 								done
@@ -238,7 +264,13 @@ do
 								do
 									for normalized in "${NORMALIZE[@]}"
 									do
-										eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr"
+										for propagate in "${PROPAGATE[@]}"
+										do
+											for scaler in "${SCALER[@]}"
+											do
+												eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+											done
+										done
 									done
 								done
 							done
@@ -285,7 +317,13 @@ do
 									do
 										for normalized in "${NORMALIZE[@]}"
 										do
-											eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr"
+											for propagate in "${PROPAGATE[@]}"
+											do
+												for scaler in "${SCALER[@]}"
+												do
+													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+												done
+											done
 										done
 									done
 								done
