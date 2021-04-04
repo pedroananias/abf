@@ -2394,7 +2394,7 @@ class Abf:
 
         # create figure
         plot_count = 1
-        fig = plt.figure(figsize=(8,15), dpi=300)
+        fig = plt.figure(figsize=(8,14), dpi=300)
         plt.tight_layout(pad=10.0)
         plt.rc('xtick',labelsize=4)
         plt.rc('ytick',labelsize=4)
