@@ -59,7 +59,10 @@ do
 										do
 											for scaler in "${SCALER[@]}"
 											do
-												eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+												for attr in "${ATTR[@]}"
+												do
+													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+												done
 											done
 										done
 									done
@@ -92,25 +95,25 @@ do
 	do
 		for class_mode in "${CLASS_MODE[@]}"
 		do
-			for attr in "${ATTR[@]}"
+			for day_threshold in "${DAYS_THRESHOLD[@]}"
 			do
-				for day_threshold in "${DAYS_THRESHOLD[@]}"
+				for days_in_out in "${DAYS_IN_OUT[@]}"
 				do
-					for days_in_out in "${DAYS_IN_OUT[@]}"
+					for grid_size in "${GRID_SIZE[@]}"
 					do
-						for grid_size in "${GRID_SIZE[@]}"
+						for reducer in "${REDUCER[@]}"
 						do
-							for reducer in "${REDUCER[@]}"
+							for fill_missing in "${FILLS_MISSING[@]}"
 							do
-								for fill_missing in "${FILLS_MISSING[@]}"
+								for model in "${MODELS[@]}"
 								do
-									for model in "${MODELS[@]}"
+									for normalized in "${NORMALIZE[@]}"
 									do
-										for normalized in "${NORMALIZE[@]}"
+										for propagate in "${PROPAGATE[@]}"
 										do
-											for propagate in "${PROPAGATE[@]}"
+											for scaler in "${SCALER[@]}"
 											do
-												for scaler in "${SCALER[@]}"
+												for attr in "${ATTR[@]}"
 												do
 													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
 												done
@@ -164,7 +167,10 @@ do
 										do
 											for scaler in "${SCALER[@]}"
 											do
-												eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+												for attr in "${ATTR[@]}"
+												do
+													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+												done
 											done
 										done
 									done
@@ -197,25 +203,25 @@ do
 	do
 		for class_mode in "${CLASS_MODE[@]}"
 		do
-			for attr in "${ATTR[@]}"
+			for day_threshold in "${DAYS_THRESHOLD[@]}"
 			do
-				for day_threshold in "${DAYS_THRESHOLD[@]}"
+				for days_in_out in "${DAYS_IN_OUT[@]}"
 				do
-					for days_in_out in "${DAYS_IN_OUT[@]}"
+					for grid_size in "${GRID_SIZE[@]}"
 					do
-						for grid_size in "${GRID_SIZE[@]}"
+						for reducer in "${REDUCER[@]}"
 						do
-							for reducer in "${REDUCER[@]}"
+							for fill_missing in "${FILLS_MISSING[@]}"
 							do
-								for fill_missing in "${FILLS_MISSING[@]}"
+								for model in "${MODELS[@]}"
 								do
-									for model in "${MODELS[@]}"
+									for normalized in "${NORMALIZE[@]}"
 									do
-										for normalized in "${NORMALIZE[@]}"
+										for propagate in "${PROPAGATE[@]}"
 										do
-											for propagate in "${PROPAGATE[@]}"
+											for scaler in "${SCALER[@]}"
 											do
-												for scaler in "${SCALER[@]}"
+												for attr in "${ATTR[@]}"
 												do
 													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
 												done
@@ -268,7 +274,10 @@ do
 										do
 											for scaler in "${SCALER[@]}"
 											do
-												eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+												for attr in "${ATTR[@]}"
+												do
+													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+												done
 											done
 										done
 									done
@@ -301,25 +310,25 @@ do
 	do
 		for class_mode in "${CLASS_MODE[@]}"
 		do
-			for attr in "${ATTR[@]}"
+			for day_threshold in "${DAYS_THRESHOLD[@]}"
 			do
-				for day_threshold in "${DAYS_THRESHOLD[@]}"
+				for days_in_out in "${DAYS_IN_OUT[@]}"
 				do
-					for days_in_out in "${DAYS_IN_OUT[@]}"
+					for grid_size in "${GRID_SIZE[@]}"
 					do
-						for grid_size in "${GRID_SIZE[@]}"
+						for reducer in "${REDUCER[@]}"
 						do
-							for reducer in "${REDUCER[@]}"
+							for fill_missing in "${FILLS_MISSING[@]}"
 							do
-								for fill_missing in "${FILLS_MISSING[@]}"
+								for model in "${MODELS[@]}"
 								do
-									for model in "${MODELS[@]}"
+									for normalized in "${NORMALIZE[@]}"
 									do
-										for normalized in "${NORMALIZE[@]}"
+										for propagate in "${PROPAGATE[@]}"
 										do
-											for propagate in "${PROPAGATE[@]}"
+											for scaler in "${SCALER[@]}"
 											do
-												for scaler in "${SCALER[@]}"
+												for attr in "${ATTR[@]}"
 												do
 													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
 												done
