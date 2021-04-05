@@ -2381,12 +2381,12 @@ class Abf:
         df_mode['color']              = 'black'
         df_mode['color_predicted']    = 'black'
         for index, color in enumerate(color_map):
-          df_mean.loc[(df_mean['label'] == index), 'color']                         = color[0]
-          df_mean.loc[(df_mean['label_predicted'] == index), 'color_predicted']     = color[0]
-          df_median.loc[(df_mean['label'] == index), 'color']                       = color[0]
-          df_median.loc[(df_mean['label_predicted'] == index), 'color_predicted']   = color[0]
-          df_mode.loc[(df_mean['label'] == index), 'color']                         = color[0]
-          df_mode.loc[(df_mean['label_predicted'] == index), 'color_predicted']     = color[0]
+          df_mean.loc[(df_mean['label'] == index), 'color']                           = color[0]
+          df_mean.loc[(df_mean['label_predicted'] == index), 'color_predicted']       = color[0]
+          df_median.loc[(df_median['label'] == index), 'color']                       = color[0]
+          df_median.loc[(df_median['label_predicted'] == index), 'color_predicted']   = color[0]
+          df_mode.loc[(df_mode['label'] == index), 'color']                           = color[0]
+          df_mode.loc[(df_mode['label_predicted'] == index), 'color_predicted']       = color[0]
             
         # dataframes - pixel and grid-wise
         df_types  = [df_mean,df_median,df_mode]
