@@ -2619,11 +2619,13 @@ class Abf:
 
             # measures
             if len(df_scene)>0:
-              y_true  = [df_scene['validation'].astype(int)]
-              y_pred  = [df_scene['prediction'].astype(int)]
+              y_true      = [df_scene['validation'].astype(int)]
+              y_pred      = [df_scene['prediction'].astype(int)]
+              difference  = df_scene['prediction'].astype(int)-df_scene['validation'].astype(int)
             else:
-              y_true  = [0]
-              y_pred  = [100]
+              y_true      = [0]
+              y_pred      = [100]
+              difference  = 0
 
             # report
             measures = misc.concordance_measures(metrics.confusion_matrix(y_true, y_pred), y_true, y_pred)
@@ -2684,7 +2686,7 @@ class Abf:
             c = fig.add_subplot(5,3,plot_count)
             c.set_title("Scene ("+str(types[i])+";RMSE:"+str(round(measures["rmse"],2))+",MAE:"+str(round(measures["mae"],2))+",R^2:"+str(round(measures["r2score"],2))+")", fontdict = {'fontsize' : 4.5})
             c1 = df_scene[['validation','prediction']].plot(kind='bar', width=.5, ax=c)
-            c2 = plt.plot([-10,100],[df_scene['difference'],df_scene['difference']],"-",color="red", lw=0.5)
+            c2 = plt.plot([-10,100],[difference,difference],"-",color="red", lw=0.5)
             c3 = plt.plot([-10,100],[0,0],"--",color="black", lw=0.5)
             c.set_xticklabels([])
             c.set_xticks([])
