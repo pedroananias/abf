@@ -46,9 +46,9 @@ parser.add_argument('--from_date', dest='from_date', action='store', default="20
                    help="Date to end time series (it will forecast 5 days starting from this date)")
 parser.add_argument('--name', dest='name', action='store', default="erie",
                    help="Place where to save generated files")
-parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=180,
+parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=90,
                    help="Days threshold used to build the timeseries and training set")
-parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=1,
+parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=4,
                    help="Day threshold to be used as input forecast")
 parser.add_argument('--days_out', dest='days_out', action='store', type=int, default=5,
                    help="Day threshold to be used as output forecast")
@@ -56,7 +56,7 @@ parser.add_argument('--model', dest='model', action='store', default="rf",
                    help="Select the desired module: mlp, lstm, rf, svm or all (None)")
 parser.add_argument('--fill_missing', dest='fill_missing', action='store', default="time",
                    help="Defines algorithm to be used to fill empty dates and values: dummy, ffill, bfill, time, linear")
-parser.add_argument('--scaler', dest='scaler', action='store', default="robust",
+parser.add_argument('--scaler', dest='scaler', action='store', default="minmax",
                    help="Defines algorithm to be used in the data scalling process: robust, minmax or standard")
 parser.add_argument('--grid_size', dest='grid_size', action='store', type=int, default=7,
                    help="Grid size in pixels that will be used in grid-wise results")

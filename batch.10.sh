@@ -9,19 +9,19 @@ SCRIPT="script.py"
 CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ARRAYS - FULL
-declare -a DAYS_THRESHOLD=("90" "180") # "90" "180" "365" "730"
-declare -a DAYS_IN_OUT=("--days_in=1 --days_out=1" "--days_in=1 --days_out=2" "--days_in=1 --days_out=3" "--days_in=1 --days_out=4" "--days_in=1 --days_out=5" "--days_in=1 --days_out=6" "--days_in=1 --days_out=7" "--days_in=1 --days_out=8" "--days_in=1 --days_out=9" "--days_in=1 --days_out=10")
+declare -a DAYS_THRESHOLD=("90") # "90" "180" "365" "730"
+declare -a DAYS_IN_OUT=("--days_in=4 --days_out=1" "--days_in=4 --days_out=2" "--days_in=4 --days_out=3" "--days_in=4 --days_out=4" "--days_in=4 --days_out=5" "--days_in=4 --days_out=6" "--days_in=4 --days_out=7" "--days_in=4 --days_out=8" "--days_in=4 --days_out=9" "--days_in=4 --days_out=10" "--days_in=4 --days_out=11" "--days_in=4 --days_out=12" "--days_in=4 --days_out=13" "--days_in=4 --days_out=14" "--days_in=4 --days_out=15")
 declare -a GRID_SIZE=("--grid_size=7")
 declare -a MODELS=("rf") # "rf" "svm" "mlp" "lstm"
 declare -a FILLS_MISSING=("--fill_missing=time")
 declare -a REDUCER=("--reducer --pca_size=0.900")
-declare -a CLASS_MODE=("--class_mode" "--class_mode --class_weight")
+declare -a CLASS_MODE=("--class_mode")
 declare -a NORMALIZE=("")
 declare -a RS_TRAIN_SIZES=("--rs_train_size=500.0")
 declare -a RS_ITERS=("--rs_iter=500")
 declare -a ATTR=("--disable_attribute_lat_lon")
-declare -a PROPAGATE=("" "--propagate")
-declare -a SCALER=("--scaler=robust" "--scaler=minmax" "--scaler=standard")
+declare -a PROPAGATE=("")
+declare -a SCALER=("--scaler=minmax")
 
 # SHOW BASE DIR
 echo "$PYTHON $BASEDIR/$SCRIPT"
