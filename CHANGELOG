@@ -91,3 +91,7 @@ Version 25:
 - Fixes in indice_threshold selection
 - Changed accuracy calculation method in grid-wise
 - Added median, mode and mean final results comparison
+
+Version 26
+- Fixes in the grid calculation process
+- Fixes in the median calculation results

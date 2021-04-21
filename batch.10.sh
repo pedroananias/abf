@@ -10,7 +10,6 @@ CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ARRAYS - FULL
 declare -a DAYS_THRESHOLD=("90") # "90" "180" "365" "730"
-declare -a DAYS_IN_OUT=("--days_in=4 --days_out=1" "--days_in=4 --days_out=2" "--days_in=4 --days_out=3" "--days_in=4 --days_out=4" "--days_in=4 --days_out=5" "--days_in=4 --days_out=6" "--days_in=4 --days_out=7" "--days_in=4 --days_out=8" "--days_in=4 --days_out=9" "--days_in=4 --days_out=10" "--days_in=4 --days_out=11" "--days_in=4 --days_out=12" "--days_in=4 --days_out=13" "--days_in=4 --days_out=14" "--days_in=4 --days_out=15")
 declare -a GRID_SIZE=("--grid_size=7")
 declare -a MODELS=("rf") # "rf" "svm" "mlp" "lstm"
 declare -a FILLS_MISSING=("--fill_missing=time")
@@ -32,36 +31,40 @@ echo "$PYTHON $BASEDIR/$SCRIPT"
 # ARGUMENTS
 NAME="chilika"
 LAT_LON="85.08856074928927,19.698732779758075,85.28279700936078,19.546819354913833"
-FROM_DATE="2014-11-20"
+#FROM_DATE="2014-11-20"
+FROM_DATE="2014-11-25"
 
 # EXECUTIONS
-for rs_train_size in "${RS_TRAIN_SIZES[@]}"
+for days_in in {1..15}
 do
-	for rs_iter in "${RS_ITERS[@]}"
+	for days_out in {1..15}
 	do
-		for class_mode in "${CLASS_MODE[@]}"
+		for rs_train_size in "${RS_TRAIN_SIZES[@]}"
 		do
-			for day_threshold in "${DAYS_THRESHOLD[@]}"
+			for rs_iter in "${RS_ITERS[@]}"
 			do
-				for days_in_out in "${DAYS_IN_OUT[@]}"
+				for class_mode in "${CLASS_MODE[@]}"
 				do
-					for grid_size in "${GRID_SIZE[@]}"
+					for day_threshold in "${DAYS_THRESHOLD[@]}"
 					do
-						for reducer in "${REDUCER[@]}"
+						for grid_size in "${GRID_SIZE[@]}"
 						do
-							for fill_missing in "${FILLS_MISSING[@]}"
+							for reducer in "${REDUCER[@]}"
 							do
-								for model in "${MODELS[@]}"
+								for fill_missing in "${FILLS_MISSING[@]}"
 								do
-									for normalized in "${NORMALIZE[@]}"
+									for model in "${MODELS[@]}"
 									do
-										for propagate in "${PROPAGATE[@]}"
+										for normalized in "${NORMALIZE[@]}"
 										do
-											for scaler in "${SCALER[@]}"
+											for propagate in "${PROPAGATE[@]}"
 											do
-												for attr in "${ATTR[@]}"
+												for scaler in "${SCALER[@]}"
 												do
-													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+													for attr in "${ATTR[@]}"
+													do
+														eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold --days_in=$days_in --days_out=$days_out $grid_size $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+													done
 												done
 											done
 										done
@@ -75,7 +78,6 @@ do
 		done
 	done
 done
-
 ############################################################################################
 
 
@@ -86,36 +88,40 @@ done
 # ARGUMENTS
 NAME="erie"
 LAT_LON="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826"
-FROM_DATE="2013-10-09"
+#FROM_DATE="2013-10-09"
+FROM_DATE="2013-10-11"
 
 # EXECUTIONS
-for rs_train_size in "${RS_TRAIN_SIZES[@]}"
+for days_in in {1..15}
 do
-	for rs_iter in "${RS_ITERS[@]}"
+	for days_out in {1..15}
 	do
-		for class_mode in "${CLASS_MODE[@]}"
+		for rs_train_size in "${RS_TRAIN_SIZES[@]}"
 		do
-			for day_threshold in "${DAYS_THRESHOLD[@]}"
+			for rs_iter in "${RS_ITERS[@]}"
 			do
-				for days_in_out in "${DAYS_IN_OUT[@]}"
+				for class_mode in "${CLASS_MODE[@]}"
 				do
-					for grid_size in "${GRID_SIZE[@]}"
+					for day_threshold in "${DAYS_THRESHOLD[@]}"
 					do
-						for reducer in "${REDUCER[@]}"
+						for grid_size in "${GRID_SIZE[@]}"
 						do
-							for fill_missing in "${FILLS_MISSING[@]}"
+							for reducer in "${REDUCER[@]}"
 							do
-								for model in "${MODELS[@]}"
+								for fill_missing in "${FILLS_MISSING[@]}"
 								do
-									for normalized in "${NORMALIZE[@]}"
+									for model in "${MODELS[@]}"
 									do
-										for propagate in "${PROPAGATE[@]}"
+										for normalized in "${NORMALIZE[@]}"
 										do
-											for scaler in "${SCALER[@]}"
+											for propagate in "${PROPAGATE[@]}"
 											do
-												for attr in "${ATTR[@]}"
+												for scaler in "${SCALER[@]}"
 												do
-													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+													for attr in "${ATTR[@]}"
+													do
+														eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+													done
 												done
 											done
 										done
@@ -140,36 +146,40 @@ done
 # ARGUMENTS
 NAME="chilika"
 LAT_LON="85.08856074928927,19.698732779758075,85.28279700936078,19.546819354913833"
-FROM_DATE="2019-11-16"
+#FROM_DATE="2019-11-16"
+FROM_DATE="2019-11-20"
 
 # EXECUTIONS
-for rs_train_size in "${RS_TRAIN_SIZES[@]}"
+for days_in in {1..15}
 do
-	for rs_iter in "${RS_ITERS[@]}"
+	for days_out in {1..15}
 	do
-		for class_mode in "${CLASS_MODE[@]}"
+		for rs_train_size in "${RS_TRAIN_SIZES[@]}"
 		do
-			for day_threshold in "${DAYS_THRESHOLD[@]}"
+			for rs_iter in "${RS_ITERS[@]}"
 			do
-				for days_in_out in "${DAYS_IN_OUT[@]}"
+				for class_mode in "${CLASS_MODE[@]}"
 				do
-					for grid_size in "${GRID_SIZE[@]}"
+					for day_threshold in "${DAYS_THRESHOLD[@]}"
 					do
-						for reducer in "${REDUCER[@]}"
+						for grid_size in "${GRID_SIZE[@]}"
 						do
-							for fill_missing in "${FILLS_MISSING[@]}"
+							for reducer in "${REDUCER[@]}"
 							do
-								for model in "${MODELS[@]}"
+								for fill_missing in "${FILLS_MISSING[@]}"
 								do
-									for normalized in "${NORMALIZE[@]}"
+									for model in "${MODELS[@]}"
 									do
-										for propagate in "${PROPAGATE[@]}"
+										for normalized in "${NORMALIZE[@]}"
 										do
-											for scaler in "${SCALER[@]}"
+											for propagate in "${PROPAGATE[@]}"
 											do
-												for attr in "${ATTR[@]}"
+												for scaler in "${SCALER[@]}"
 												do
-													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+													for attr in "${ATTR[@]}"
+													do
+														eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+													done
 												done
 											done
 										done
@@ -194,36 +204,40 @@ done
 # ARGUMENTS
 NAME="erie"
 LAT_LON="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826"
-FROM_DATE="2015-07-28"
+#FROM_DATE="2015-07-28"
+FROM_DATE="2015-07-27"
 
 # EXECUTIONS
-for rs_train_size in "${RS_TRAIN_SIZES[@]}"
+for days_in in {1..15}
 do
-	for rs_iter in "${RS_ITERS[@]}"
+	for days_out in {1..15}
 	do
-		for class_mode in "${CLASS_MODE[@]}"
+		for rs_train_size in "${RS_TRAIN_SIZES[@]}"
 		do
-			for day_threshold in "${DAYS_THRESHOLD[@]}"
+			for rs_iter in "${RS_ITERS[@]}"
 			do
-				for days_in_out in "${DAYS_IN_OUT[@]}"
+				for class_mode in "${CLASS_MODE[@]}"
 				do
-					for grid_size in "${GRID_SIZE[@]}"
+					for day_threshold in "${DAYS_THRESHOLD[@]}"
 					do
-						for reducer in "${REDUCER[@]}"
+						for grid_size in "${GRID_SIZE[@]}"
 						do
-							for fill_missing in "${FILLS_MISSING[@]}"
+							for reducer in "${REDUCER[@]}"
 							do
-								for model in "${MODELS[@]}"
+								for fill_missing in "${FILLS_MISSING[@]}"
 								do
-									for normalized in "${NORMALIZE[@]}"
+									for model in "${MODELS[@]}"
 									do
-										for propagate in "${PROPAGATE[@]}"
+										for normalized in "${NORMALIZE[@]}"
 										do
-											for scaler in "${SCALER[@]}"
+											for propagate in "${PROPAGATE[@]}"
 											do
-												for attr in "${ATTR[@]}"
+												for scaler in "${SCALER[@]}"
 												do
-													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+													for attr in "${ATTR[@]}"
+													do
+														eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+													done
 												done
 											done
 										done
@@ -247,36 +261,40 @@ done
 # ARGUMENTS
 NAME="chilika"
 LAT_LON="85.08856074928927,19.698732779758075,85.28279700936078,19.546819354913833"
-FROM_DATE="2020-03-24"
+#FROM_DATE="2020-03-24"
+FROM_DATE="2020-03-29"
 
 # EXECUTIONS
-for rs_train_size in "${RS_TRAIN_SIZES[@]}"
+for days_in in {1..15}
 do
-	for rs_iter in "${RS_ITERS[@]}"
+	for days_out in {1..15}
 	do
-		for class_mode in "${CLASS_MODE[@]}"
+		for rs_train_size in "${RS_TRAIN_SIZES[@]}"
 		do
-			for day_threshold in "${DAYS_THRESHOLD[@]}"
+			for rs_iter in "${RS_ITERS[@]}"
 			do
-				for days_in_out in "${DAYS_IN_OUT[@]}"
+				for class_mode in "${CLASS_MODE[@]}"
 				do
-					for grid_size in "${GRID_SIZE[@]}"
+					for day_threshold in "${DAYS_THRESHOLD[@]}"
 					do
-						for reducer in "${REDUCER[@]}"
+						for grid_size in "${GRID_SIZE[@]}"
 						do
-							for fill_missing in "${FILLS_MISSING[@]}"
+							for reducer in "${REDUCER[@]}"
 							do
-								for model in "${MODELS[@]}"
+								for fill_missing in "${FILLS_MISSING[@]}"
 								do
-									for normalized in "${NORMALIZE[@]}"
+									for model in "${MODELS[@]}"
 									do
-										for propagate in "${PROPAGATE[@]}"
+										for normalized in "${NORMALIZE[@]}"
 										do
-											for scaler in "${SCALER[@]}"
+											for propagate in "${PROPAGATE[@]}"
 											do
-												for attr in "${ATTR[@]}"
+												for scaler in "${SCALER[@]}"
 												do
-													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+													for attr in "${ATTR[@]}"
+													do
+														eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+													done
 												done
 											done
 										done
@@ -304,33 +322,36 @@ LAT_LON="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337
 FROM_DATE="2019-07-11"
 
 # EXECUTIONS
-for rs_train_size in "${RS_TRAIN_SIZES[@]}"
+for days_in in {1..15}
 do
-	for rs_iter in "${RS_ITERS[@]}"
+	for days_out in {1..15}
 	do
-		for class_mode in "${CLASS_MODE[@]}"
+		for rs_train_size in "${RS_TRAIN_SIZES[@]}"
 		do
-			for day_threshold in "${DAYS_THRESHOLD[@]}"
+			for rs_iter in "${RS_ITERS[@]}"
 			do
-				for days_in_out in "${DAYS_IN_OUT[@]}"
+				for class_mode in "${CLASS_MODE[@]}"
 				do
-					for grid_size in "${GRID_SIZE[@]}"
+					for day_threshold in "${DAYS_THRESHOLD[@]}"
 					do
-						for reducer in "${REDUCER[@]}"
+						for grid_size in "${GRID_SIZE[@]}"
 						do
-							for fill_missing in "${FILLS_MISSING[@]}"
+							for reducer in "${REDUCER[@]}"
 							do
-								for model in "${MODELS[@]}"
+								for fill_missing in "${FILLS_MISSING[@]}"
 								do
-									for normalized in "${NORMALIZE[@]}"
+									for model in "${MODELS[@]}"
 									do
-										for propagate in "${PROPAGATE[@]}"
+										for normalized in "${NORMALIZE[@]}"
 										do
-											for scaler in "${SCALER[@]}"
+											for propagate in "${PROPAGATE[@]}"
 											do
-												for attr in "${ATTR[@]}"
+												for scaler in "${SCALER[@]}"
 												do
-													eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+													for attr in "${ATTR[@]}"
+													do
+														eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$FROM_DATE --model=$model --days_threshold=$day_threshold $grid_size $days_in_out $fill_missing $reducer $class_mode $normalized $rs_train_size $rs_iter $attr $propagate $scaler"
+													done
 												done
 											done
 										done
