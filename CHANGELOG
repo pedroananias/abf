@@ -95,3 +95,7 @@ Version 25:
 Version 26
 - Fixes in the grid calculation process
 - Fixes in the median calculation results
+
+Version 27
+- Fixes in the script.py attributes
+- Fixes in the reduction plot

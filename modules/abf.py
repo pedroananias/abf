@@ -178,38 +178,38 @@ class Abf:
     print("Selected sensor: "+self.sensor_params['name'])
 
     # user defined parameters
-    self.geometry                   = geometry
-    self.days_threshold             = days_threshold
-    self.path                       = path
-    self.cache_path                 = cache_path
-    self.lat_lon                    = lat_lon
-    self.sensor                     = sensor
-    self.force_cache                = force_cache
-    self.grid_size                  = int(grid_size)-1 if (int(grid_size) % 2) == 0 else int(grid_size)
-    self.morph_op                   = morph_op
-    self.morph_op_iters             = morph_op_iters
-    self.convolve                   = convolve
-    self.convolve_radius            = convolve_radius
-    self.days_in                    = days_in
-    self.days_out                   = days_out
-    self.model                      = model
-    self.fill_missing               = fill_missing
-    self.shuffle                    = shuffle
-    self.remove_dummies             = remove_dummies
-    self.reducer                    = reducer
-    self.normalized                 = normalized
-    self.class_mode                 = class_mode
-    self.class_weight               = class_weight
-    self.propagate                  = propagate
-    self.rs_train_size              = int(rs_train_size) if rs_train_size >= 1 else rs_train_size
-    self.rs_iter                    = rs_iter
-    self.pca_size                   = pca_size
-    self.attribute_lat_lon          = attribute_lat_lon
-    self.attribute_doy              = attribute_doy
+    self.geometry                     = geometry
+    self.days_threshold               = days_threshold
+    self.path                         = path
+    self.cache_path                   = cache_path
+    self.lat_lon                      = lat_lon
+    self.sensor                       = sensor
+    self.force_cache                  = force_cache
+    self.grid_size                    = int(grid_size)-1 if (int(grid_size) % 2) == 0 else int(grid_size)
+    self.morph_op                     = morph_op
+    self.morph_op_iters               = morph_op_iters
+    self.convolve                     = convolve
+    self.convolve_radius              = convolve_radius
+    self.days_in                      = days_in
+    self.days_out                     = days_out
+    self.model                        = model
+    self.fill_missing                 = fill_missing
+    self.shuffle                      = shuffle
+    self.remove_dummies               = remove_dummies
+    self.reducer                      = reducer
+    self.normalized                   = normalized
+    self.class_mode                   = class_mode
+    self.class_weight                 = class_weight
+    self.propagate                    = propagate
+    self.rs_train_size                = int(rs_train_size) if rs_train_size >= 1 else rs_train_size
+    self.rs_iter                      = rs_iter
+    self.pca_size                     = pca_size
+    self.attribute_lat_lon            = attribute_lat_lon
+    self.attribute_doy                = attribute_doy
 
     # fix days_in and days_out (avoid errors)
-    self.days_in                    = self.days_in  if self.days_in   >= 1 else 1
-    self.days_out                   = self.days_out if self.days_out  >= 1 else 1
+    self.days_in                      = self.days_in  if self.days_in   >= 1 else 1
+    self.days_out                     = self.days_out if self.days_out  >= 1 else 1
 
     # faster loading
     if not test_mode:
@@ -228,9 +228,9 @@ class Abf:
       # time series expansion
       # based on GDAL last image
       if from_date is None:
-        self.dates_timeseries[1]      = dt.fromtimestamp(ee.ImageCollection("NASA/GLDAS/V021/NOAH/G025/T3H").filterBounds(self.geometry).sort('system:time_start', False).first().get('system:time_start').getInfo()/1000.0)
+        self.dates_timeseries[1]        = dt.fromtimestamp(ee.ImageCollection("NASA/GLDAS/V021/NOAH/G025/T3H").filterBounds(self.geometry).sort('system:time_start', False).first().get('system:time_start').getInfo()/1000.0)
       else:
-        self.dates_timeseries[1]      = dt.strptime(from_date, "%Y-%m-%d")
+        self.dates_timeseries[1]        = dt.strptime(from_date, "%Y-%m-%d")
 
       # correct time series expansion (sensor start date)
       self.dates_timeseries[0] = self.dates_timeseries[1] - td(days=self.days_threshold)
@@ -238,15 +238,15 @@ class Abf:
         self.dates_timeseries[0] = self.sensor_params['start']
 
       # creating final sensor collection
-      collection, collection_water    = gee.get_sensor_collections(geometry=self.geometry, sensor=self.sensor, dates=[dt.strftime(self.dates_timeseries[0], "%Y-%m-%d"), dt.strftime(self.dates_timeseries[1], "%Y-%m-%d")])
+      collection, collection_water      = gee.get_sensor_collections(geometry=self.geometry, sensor=self.sensor, dates=[dt.strftime(self.dates_timeseries[0], "%Y-%m-%d"), dt.strftime(self.dates_timeseries[1], "%Y-%m-%d")])
 
       # create useful time series
-      self.collection                 = collection
-      self.collection_water           = collection_water
-      self.dates_timeseries_interval  = misc.remove_duplicated_dates([dt.strptime(d, "%Y-%m-%d") for d in self.collection.map(lambda image: ee.Feature(None, {'date': image.date().format('YYYY-MM-dd')})).distinct('date').aggregate_array("date").getInfo()])
+      self.collection                   = collection
+      self.collection_water             = collection_water
+      self.dates_timeseries_interval    = misc.remove_duplicated_dates([dt.strptime(d, "%Y-%m-%d") for d in self.collection.map(lambda image: ee.Feature(None, {'date': image.date().format('YYYY-MM-dd')})).distinct('date').aggregate_array("date").getInfo()])
 
       # preprocessing - water mask extraction
-      self.water_mask                 = self.create_water_mask(self.morph_op, self.morph_op_iters)
+      self.water_mask                   = self.create_water_mask(self.morph_op, self.morph_op_iters)
 
       # count sample pixels and get sample min max coordinates
       self.sample_clip                  = self.clip_image(ee.Image(abs(self.dummy)))
@@ -969,10 +969,22 @@ class Abf:
     str_lat         = 'var'+str(self.attributes_selected.index('lat')+1)
     str_lon         = 'var'+str(self.attributes_selected.index('lon')+1)
     str_doy         = 'var'+str(self.attributes_selected.index('doy')+1)
-    str_label_ndwi  = 'var'+str(self.attributes_selected.index('ndwi')+1)
-    str_label_ndvi  = 'var'+str(self.attributes_selected.index('ndvi')+1)
-    str_label_sabi  = 'var'+str(self.attributes_selected.index('sabi')+1)
-    str_label_fai   = 'var'+str(self.attributes_selected.index('fai')+1)
+    if "ndwi" in self.attributes_selected:
+      str_label_ndwi  = 'var'+str(self.attributes_selected.index('ndwi')+1)
+    else:
+      str_label_ndwi = ""
+    if "ndvi" in self.attributes_selected:
+      str_label_ndvi = 'var'+str(self.attributes_selected.index('ndvi')+1)
+    else:
+      str_label_ndvi = ""
+    if "sabi" in self.attributes_selected:
+      str_label_sabi = 'var'+str(self.attributes_selected.index('sabi')+1)
+    else:
+      str_label_sabi = ""
+    if "fai" in self.attributes_selected:
+      str_label_fai = 'var'+str(self.attributes_selected.index('fai')+1)
+    else:
+      str_label_fai = ""
     in_labels       = [s for i, s in enumerate(df_pixel.columns) if 't-' in s and not str_label+'(' in s]
     in_labels       = [s for i, s in enumerate(in_labels) if (self.attribute_lat_lon or not str_lat in s) and (self.attribute_lat_lon or not str_lon in s) and (self.attribute_doy or not str_doy in s)]
     if self.class_mode:
@@ -1545,10 +1557,9 @@ class Abf:
     # colormap
     color_map                   = np.empty((5,1), dtype=object)
     color_map[0]                = "cyan"
-    color_map[1]                = "black"
-    color_map[2]                = "black"
-    color_map[3]                = "black"
-    color_map[4]                = "magenta"
+    for i in range(1,len(attributes_clear)):
+      color_map[i] = "black"
+    color_map[len(attributes_clear)] = "magenta"
 
     # colorbar tixks
     colorbar_ticks_max          = 100
@@ -1625,7 +1636,7 @@ class Abf:
         for i in range(1,self.days_out):
 
           # check mode and fix column names
-          features = 4
+          features = len(attributes_clear)
           if self.class_mode:
             features = 1
             df_new = df.rename(columns={0:'lat', 1:'lon', 2:'label'})[['lat','lon','label']]
@@ -1752,7 +1763,7 @@ class Abf:
         #others
         else:
           plot_count = 1
-          fig = plt.figure(figsize=(14,6), dpi=300)
+          fig = plt.figure(figsize=(14,7), dpi=300)
           plt.tight_layout(pad=10.0)
           plt.rc('xtick',labelsize=3)
           plt.rc('ytick',labelsize=3)
@@ -2278,8 +2289,9 @@ class Abf:
           if plot_type == "grid":
             
             # colobar
-            cbar = fig.colorbar(images_grid[-1], cax=fig.add_axes([0.601, 0.055, 0.30, 0.025]), ticks=colorbar_ticks, orientation='horizontal')
-            cbar.set_label("% of occurrence")
+            cbar = fig.colorbar(images_grid[-1], cax=fig.add_axes([0.601, 0.055, 0.25, 0.01]), ticks=colorbar_ticks, orientation='horizontal')
+            cbar.set_label("% of occurrence", fontdict = {'fontsize' : 4.5})
+            cbar.ax.tick_params(labelsize=4.5)
 
             # legend
             plt.legend(legends_colors2, legends_colors_captions2, loc='upper center', bbox_to_anchor=(-1.30, 0.4), ncol=4, fontsize='x-small', fancybox=True, shadow=True)
@@ -2371,7 +2383,7 @@ class Abf:
           df_median.loc[(df_median['label_predicted'] == index), 'color_predicted']   = color[0]
 
         # create figure
-        fig = plt.figure(figsize=(10,10), dpi=300)
+        fig = plt.figure(figsize=(10,11), dpi=300)
         plt.tight_layout(pad=10.0)
         plt.rc('xtick',labelsize=8)
         plt.rc('ytick',labelsize=8)
@@ -2411,7 +2423,8 @@ class Abf:
         c.imshow(image_empty_clip_io, extent=[xticks[0],xticks[-1],yticks[0],yticks[-1]])
         s = c.scatter(df_median['lat'], df_median['lon'], marker='s', s=markersize_scatter, c=df_median['class'], cmap=plt.get_cmap('jet'), edgecolors='none')
         s.set_clim(colorbar_ticks[0], colorbar_ticks[-1])
-        #cbar = fig.colorbar(s, cax=fig.add_axes([0, 0, 0.18, 0.025]), ticks=colorbar_ticks, orientation='horizontal')
+        cbar = fig.colorbar(s, cax=fig.add_axes([0.635, 0.64, 0.18, 0.01]), ticks=colorbar_ticks, orientation='horizontal')
+        cbar.ax.tick_params(labelsize=5)
         c.margins(x=0,y=0)
             
         # Pixel-wise (Prediction)

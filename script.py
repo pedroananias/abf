@@ -8,7 +8,7 @@
 #####################################################################################################################################
 
 # ### Version
-version = "V26"
+version = "V27"
 
 
 # ### Module imports
@@ -52,21 +52,21 @@ parser.add_argument('--days_in', dest='days_in', action='store', type=int, defau
                    help="Day threshold to be used as input forecast")
 parser.add_argument('--days_out', dest='days_out', action='store', type=int, default=5,
                    help="Day threshold to be used as output forecast")
+parser.add_argument('--grid_size', dest='grid_size', action='store', type=int, default=7,
+                   help="Grid size in pixels that will be used in grid-wise results")
 parser.add_argument('--model', dest='model', action='store', default="rf",
                    help="Select the desired module: mlp, lstm, rf, svm or all (None)")
 parser.add_argument('--fill_missing', dest='fill_missing', action='store', default="time",
                    help="Defines algorithm to be used to fill empty dates and values: dummy, ffill, bfill, time, linear")
-parser.add_argument('--scaler', dest='scaler', action='store', default="minmax",
-                   help="Defines algorithm to be used in the data scalling process: robust, minmax or standard")
-parser.add_argument('--grid_size', dest='grid_size', action='store', type=int, default=7,
-                   help="Grid size in pixels that will be used in grid-wise results")
 parser.add_argument('--remove_dummies', dest='remove_dummies', action='store_true',
                    help="Defines if the dummies will be removed before training (only works with fill_missing=dummy)")
-parser.add_argument('--reducer', dest='reducer', action='store_true',
-                   help="Defines if reducer will be applied to remove unnecessary features")
-parser.add_argument('--non_normalized', dest='non_normalized', action='store_false',
+parser.add_argument('--scaler', dest='scaler', action='store', default="minmax",
+                   help="Defines algorithm to be used in the data scalling process: robust, minmax or standard")
+parser.add_argument('--disable_reducer', dest='disable_reducer', action='store_false',
+                   help="Defines if reducer will not be applied to remove unnecessary features")
+parser.add_argument('--disable_normalization', dest='disable_normalization', action='store_false',
                    help="Defines if normalization (-1,1) will not be applied to indices ndwi, ndvi and sabi")
-parser.add_argument('--class_mode', dest='class_mode', action='store_true',
+parser.add_argument('--regression_mode', dest='regression_mode', action='store_false',
                    help="Defines whether will use raw values or classes in the regression models")
 parser.add_argument('--class_weight', dest='class_weight', action='store_true',
                    help="Defines whether classes will have defined weights for each")
@@ -82,8 +82,8 @@ parser.add_argument('--convolve', dest='convolve', action='store_true',
                    help="Define if a convolution box-car low-pass filter will be applied to images before training")
 parser.add_argument('--convolve_radius', dest='convolve_radius', action='store', type=int, default=1,
                    help="Define the amont of radius will be used in the convolution box-car low-pass filter")
-parser.add_argument('--disable_attribute_lat_lon', dest='disable_attribute_lat_lon', action='store_false',
-                   help="Disable attributes lat and lons from training modeling")
+parser.add_argument('--enable_attribute_lat_lon', dest='enable_attribute_lat_lon', action='store_true',
+                   help="Enable attributes lat and lons in the training process")
 parser.add_argument('--disable_attribute_doy', dest='disable_attribute_doy', action='store_false',
                    help="Disable attribute doy from training modeling")
 parser.add_argument('--disable_shuffle', dest='disable_shuffle', action='store_false',
@@ -95,7 +95,6 @@ parser.add_argument('--save_train', dest='save_train', action='store_true',
 
 # parsing arguments
 args = parser.parse_args()
-
 
 
 
@@ -141,7 +140,7 @@ try:
   # ### ABF execution
 
   # folder to save results from algorithm at
-  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',m='+str(args.model)+',g='+str(args.grid_size)+',ri='+str(args.rs_iter)+',all='+str(args.disable_attribute_lat_lon)+',cw='+str(args.class_weight)+',pg='+str(args.propagate)+',s='+str(args.scaler)+']'
+  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',m='+str(args.model)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',g='+str(args.grid_size)+']'
   if not os.path.exists(folder):
     os.mkdir(folder)
 
@@ -165,15 +164,15 @@ try:
                       model=args.model,
                       fill_missing=args.fill_missing,
                       remove_dummies=args.remove_dummies,
-                      reducer=args.reducer,
-                      normalized=args.non_normalized,
-                      class_mode=args.class_mode,
+                      reducer=args.disable_reducer,
+                      normalized=args.disable_normalization,
+                      class_mode=args.regression_mode,
                       class_weight=args.class_weight,
                       propagate=args.propagate,
                       rs_train_size=args.rs_train_size,
                       rs_iter=args.rs_iter,
                       pca_size=args.pca_size,
-                      attribute_lat_lon=args.disable_attribute_lat_lon,
+                      attribute_lat_lon=args.enable_attribute_lat_lon,
                       attribute_doy=args.disable_attribute_doy,
                       shuffle=args.disable_shuffle,
                       test_mode=False)
