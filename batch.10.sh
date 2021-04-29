@@ -11,7 +11,7 @@ CLEAR="sudo pkill -f /home/pedro/anaconda3"
 # ARRAYS - FULL
 declare -a DAYS_THRESHOLD=("90") # "90" "180" "365" "730"
 declare -a GRID_SIZE=("--grid_size=7")
-declare -a MODELS=("rf") # "rf" "svm" "mlp" "lstm"
+declare -a MODELS=("rf" "svm") # "rf" "svm" "mlp" "lstm"
 declare -a FILLS_MISSING=("--fill_missing=time")
 declare -a REDUCER=("--reducer --pca_size=0.900")
 declare -a CLASS_MODE=("--class_mode")
