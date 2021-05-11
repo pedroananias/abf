@@ -13,12 +13,12 @@ declare -a DAYS_THRESHOLD=("90") # "90" "180" "365" "730"
 declare -a GRID_SIZE=("--grid_size=7")
 declare -a MODELS=("svm") # "rf" "svm" "mlp" "lstm"
 declare -a FILLS_MISSING=("--fill_missing=time")
-declare -a REDUCER=("--reducer --pca_size=0.900")
-declare -a CLASS_MODE=("--class_mode")
+declare -a REDUCER=("--pca_size=0.900")
+declare -a CLASS_MODE=("")
 declare -a NORMALIZE=("")
 declare -a RS_TRAIN_SIZES=("--rs_train_size=500.0")
 declare -a RS_ITERS=("--rs_iter=500")
-declare -a ATTR=("--disable_attribute_lat_lon")
+declare -a ATTR=("")
 declare -a PROPAGATE=("")
 declare -a SCALER=("--scaler=minmax")
 
