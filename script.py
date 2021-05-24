@@ -8,7 +8,7 @@
 #####################################################################################################################################
 
 # ### Version
-version = "V27"
+version = "V28"
 
 
 # ### Module imports
@@ -78,6 +78,8 @@ parser.add_argument('--rs_iter', dest='rs_iter', action='store', type=int, defau
                    help="It allow increase the randomized search iteration size")
 parser.add_argument('--pca_size', dest='pca_size', action='store', type=float, default=0.900,
                    help="Define PCA reducer variance size")
+parser.add_argument('--reduction', dest='reduction', action='store', type=str, default="median",
+                   help="Define which reduction (median or min) will be used in the reduction stats")
 parser.add_argument('--convolve', dest='convolve', action='store_true',
                    help="Define if a convolution box-car low-pass filter will be applied to images before training")
 parser.add_argument('--convolve_radius', dest='convolve_radius', action='store', type=int, default=1,
@@ -140,7 +142,7 @@ try:
   # ### ABF execution
 
   # folder to save results from algorithm at
-  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',m='+str(args.model)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',g='+str(args.grid_size)+']'
+  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',m='+str(args.model)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',g='+str(args.grid_size)+',r='+str(args.reduction)+']'
   if not os.path.exists(folder):
     os.mkdir(folder)
 
@@ -191,12 +193,8 @@ try:
   # train/predict
   else:
     algorithm.train(batch_size=2048, disable_gpu=True)
-    algorithm.predict(folder=folder+"/prediction")
-    algorithm.predict_reduction(folder=folder+"/prediction")
-
-    # check if it is Lake Erie (the only one that has ROI to validate with)
-    if args.name == "erie":
-      algorithm.validate_using_roi(path='users/pedroananias/'+str(args.name), rois=['date_sensor_regular', 'date_sensor_anomaly'], labels=[0, 1])
+    algorithm.predict(folder=folder+"/prediction", path='users/pedroananias/'+str(args.name), chla_threshold=20)
+    algorithm.predict_reduction(folder=folder+"/prediction", reduction=str(args.reduction))
 
     # prediction results
     algorithm.save_dataset(df=algorithm.df_results, path=folder+'/results.csv')

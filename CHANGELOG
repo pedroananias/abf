@@ -100,3 +100,8 @@ Version 27
 - Fixes in the script.py attributes
 - Fixes in the reduction plot
 - New batch script (added Lake Taihu area)
+
+Version 28
+- Added reference validation (Earth Earth Engine)
+- Added reduction parameter (meadin or min, if using referente validation)
+- Major fixes in the statistics functions
