@@ -2478,9 +2478,9 @@ class Abf:
 
         # title
         if len(self.predict_dates) > 1:
-          plt.title(self.name+": pixel/grid/scene-wise reductions (median) from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 10}, pad=30)
+          plt.title(self.name+": pixel/grid/scene-wise reductions from "+self.predict_dates[0].strftime("%Y-%m-%d")+" to "+self.predict_dates[-1].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 10}, pad=30)
         else:
-          plt.title(self.name+": pixel/grid/scene-wise reductions (median) from "+self.predict_dates[0].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 10}, pad=30)
+          plt.title(self.name+": pixel/grid/scene-wise reductions from "+self.predict_dates[0].strftime("%Y-%m-%d")+"\n"+model, fontdict = {'fontsize' : 10}, pad=30)
 
         # Pixel-wise (Validation)
         c = fig.add_subplot(gs[0, 0])
