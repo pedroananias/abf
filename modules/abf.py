@@ -68,16 +68,16 @@ class Abf:
   dummy                       = -99999
   cloud_threshold             = 0.50 # only images where clear pixels are greater thans 50%
   max_tile_pixels             = 10000000 # if higher, will split the geometry into tiles
-  indices_thresholds          = {'ndwi': 0.3, 'ndvi': -0.15, 'sabi': -0.10, 'fai': -0.004}
+  indices_thresholds          = {'mndwi': 0.0, 'ndvi': -0.15, 'sabi': -0.10, 'fai': -0.004}
   n_cores                     = int(multiprocessing.cpu_count()*0.75) # only 75% of available cores
   random_state                = 123 # random state used in numpy and related shuffling problems
   plots_grid                  = 5 # used to divide the plot in grid
 
   # attributes
-  attributes                  = ['cloud', 'ndwi', 'ndvi', 'sabi', 'fai', 'wind', 'temperature', 'drainage_direction', 'precipitation', 'elevation', 'pressure', 'evapotranspiration', 'emissivity']
-  attributes_clear            = ['cloud', 'ndwi', 'ndvi', 'sabi', 'fai']
-  attributes_inverse          = ['ndwi']
-  attributes_selected         = ['lat', 'lon', 'doy', 'ndwi', 'ndvi', 'sabi', 'fai', 'wind', 'temperature', 'drainage_direction', 'precipitation', 'elevation', 'pressure', 'evapotranspiration', 'emissivity']
+  attributes                  = ['cloud', 'mndwi', 'ndvi', 'sabi', 'fai', 'wind', 'temperature', 'drainage_direction', 'precipitation', 'elevation', 'pressure', 'evapotranspiration', 'emissivity']
+  attributes_clear            = ['cloud', 'mndwi', 'ndvi', 'sabi', 'fai']
+  attributes_inverse          = ['mndwi']
+  attributes_selected         = ['lat', 'lon', 'doy', 'mndwi', 'ndvi', 'sabi', 'fai', 'wind', 'temperature', 'drainage_direction', 'precipitation', 'elevation', 'pressure', 'evapotranspiration', 'emissivity']
   
   # supports
   dates_timeseries            = [None, None]
@@ -515,9 +515,9 @@ class Abf:
     if self.normalized:
       print()
       print("Normalizing indices...")
-      if 'ndwi' in self.attributes:
-        df.loc[df['ndwi']<-1, 'ndwi'] = -1
-        df.loc[df['ndwi']>1, 'ndwi'] = 1
+      if 'mndwi' in self.attributes:
+        df.loc[df['mndwi']<-1, 'mndwi'] = -1
+        df.loc[df['mndwi']>1, 'mndwi'] = 1
       if 'ndvi' in self.attributes:
         df.loc[df['ndvi']<-1, 'ndvi'] = -1
         df.loc[df['ndvi']>1, 'ndvi'] = 1
@@ -969,10 +969,10 @@ class Abf:
     str_lat         = 'var'+str(self.attributes_selected.index('lat')+1)
     str_lon         = 'var'+str(self.attributes_selected.index('lon')+1)
     str_doy         = 'var'+str(self.attributes_selected.index('doy')+1)
-    if "ndwi" in self.attributes_selected:
-      str_label_ndwi  = 'var'+str(self.attributes_selected.index('ndwi')+1)
+    if "mndwi" in self.attributes_selected:
+      str_label_mndwi  = 'var'+str(self.attributes_selected.index('mndwi')+1)
     else:
-      str_label_ndwi = ""
+      str_label_mndwi = ""
     if "ndvi" in self.attributes_selected:
       str_label_ndvi = 'var'+str(self.attributes_selected.index('ndvi')+1)
     else:
@@ -990,7 +990,7 @@ class Abf:
     if self.class_mode:
       out_labels      = [s for i, s in enumerate(df_pixel.columns) if str_label+'(' in s  and not 't-' in s]
     else:
-      out_labels      = [s for i, s in enumerate(df_pixel.columns) if (str_label_ndwi+'(' in s or str_label_ndvi+'(' in s or str_label_sabi+'(' in s or str_label_fai+'(' in s) and not 't-' in s]
+      out_labels      = [s for i, s in enumerate(df_pixel.columns) if (str_label_mndwi+'(' in s or str_label_ndvi+'(' in s or str_label_sabi+'(' in s or str_label_fai+'(' in s) and not 't-' in s]
     df_pixel        = df_pixel[in_labels+out_labels]
     new_columns     = list(range(0,len(in_labels+out_labels)))
     for i, c in enumerate(new_columns[:-len(out_labels)]):
@@ -1216,16 +1216,16 @@ class Abf:
         print("Creating the LSTM (Bidirection w/ Encoder-Decoder) with RandomizedSearchCV parameterization model...")
 
         # attributes
-        days_in = self.days_in
-        #days_out = self.days_out
-        in_size = len(self.attributes_selected)
+        #days_in   = self.days_in
+        #days_out  = self.days_out
+        #in_size = len(self.attributes_selected)
         #out_size = 1 if self.class_mode else len(self.indices_thresholds)
 
-        # enabled attributes
-        if not self.attribute_lat_lon:
-          in_size = in_size - 2
-        if not self.attribute_doy:
-          in_size = in_size - 1
+        # # enabled attributes
+        # if not self.attribute_lat_lon:
+        #   in_size = in_size - 2
+        # if not self.attribute_doy:
+        #   in_size = in_size - 1
 
         #################################
         # Custom LSTM Model
@@ -1244,7 +1244,7 @@ class Abf:
             [
               tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(int(size), activation="tanh", input_shape=(1, X_gridsearch.shape[1]))),
               tf.keras.layers.Dropout(dropout),
-              tf.keras.layers.RepeatVector(days_in),
+              tf.keras.layers.RepeatVector(y_gridsearch.shape[1]),
               tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(int(size), activation='tanh', return_sequences=True)),
               tf.keras.layers.Dropout(dropout),
               tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(int(size), activation='tanh')),
@@ -1269,9 +1269,9 @@ class Abf:
         # apply RandomizedSearchCV and get best estimator and training the model
         start_time = time.time()
         rs = model_selection.RandomizedSearchCV(estimator=KerasRegressorModified(build_fn=lstm_modified, verbose=1), param_distributions=random_grid, scoring=metrics.make_scorer(lstm_scorer), n_iter=self.rs_iter, cv=5, verbose=1, random_state=self.random_state, n_jobs=self.n_cores)
-        rs.fit(X_gridsearch.reshape(X_gridsearch.shape[0], 1, X_gridsearch.shape[1]), y_gridsearch.reshape(y_gridsearch.shape[0], 1, y_gridsearch.shape[1]))
+        rs.fit(X_gridsearch.reshape(X_gridsearch.shape[0], 1, X_gridsearch.shape[1]), y_gridsearch.reshape(y_gridsearch.shape[0], y_gridsearch.shape[1], 1))
         lstm = rs.best_estimator_
-        lstm.fit(X_train.reshape(X_train.shape[0], 1, X_train.shape[1]), y_train.reshape(y_train.shape[0], 1, y_train.shape[1]))
+        lstm.fit(X_train.reshape(X_train.shape[0], 1, X_train.shape[1]), y_train.reshape(y_train.shape[0], y_gridsearch.shape[1], 1))
 
         # training the model
         # model name
@@ -1692,9 +1692,9 @@ class Abf:
       # OR LSTM
       elif 'LSTM' in model:
         if self.class_mode:
-          y_pred = self.classifiers[model].predict(X.reshape(X.shape[0], 1, X.shape[1])).reshape(-1, self.days_in*1)
+          y_pred = self.classifiers[model].predict(X.reshape(X.shape[0], 1, X.shape[1])).reshape(-1, self.days_out*1)
         else:
-          y_pred = self.classifiers[model].predict(X.reshape(X.shape[0], 1, X.shape[1])).reshape(-1, self.days_in*len(attributes_clear))
+          y_pred = self.classifiers[model].predict(X.reshape(X.shape[0], 1, X.shape[1])).reshape(-1, self.days_out*len(attributes_clear))
       
       # regular model
       else:
@@ -1749,9 +1749,9 @@ class Abf:
           # check if model is LSTM to format dataset for it
           elif 'LSTM' in model:
             if self.class_mode:
-              y_pred = self.classifiers[model].predict(X.reshape(X.shape[0], 1, X.shape[1])).reshape(-1, self.days_in*1)
+              y_pred = self.classifiers[model].predict(X.reshape(X.shape[0], 1, X.shape[1])).reshape(-1, self.days_out*1)
             else:
-              y_pred = self.classifiers[model].predict(X.reshape(X.shape[0], 1, X.shape[1])).reshape(-1, self.days_in*len(attributes_clear))
+              y_pred = self.classifiers[model].predict(X.reshape(X.shape[0], 1, X.shape[1])).reshape(-1, self.days_out*len(attributes_clear))
             df_new = pd.DataFrame(data=np.concatenate((array_lats_lons, y_pred), axis=1))
 
           # regular dataset format (rf and svm)

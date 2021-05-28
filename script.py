@@ -8,7 +8,7 @@
 #####################################################################################################################################
 
 # ### Version
-version = "V28"
+version = "V29"
 
 
 # ### Module imports
@@ -42,11 +42,11 @@ parser = argparse.ArgumentParser(description=version)
 # create arguments
 parser.add_argument('--lat_lon', dest='lat_lon', action='store', default="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826",
                    help="Two diagnal points (Latitude 1, Longitude 1, Latitude 2, Longitude 2) of the study area")
-parser.add_argument('--from_date', dest='from_date', action='store', default="2019-07-11",
+parser.add_argument('--from_date', dest='from_date', action='store', default="2013-10-11",
                    help="Date to end time series (it will forecast 5 days starting from this date)")
 parser.add_argument('--name', dest='name', action='store', default="erie",
                    help="Place where to save generated files")
-parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=90,
+parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=180,
                    help="Days threshold used to build the timeseries and training set")
 parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=4,
                    help="Day threshold to be used as input forecast")
@@ -65,7 +65,7 @@ parser.add_argument('--scaler', dest='scaler', action='store', default="minmax",
 parser.add_argument('--disable_reducer', dest='disable_reducer', action='store_false',
                    help="Defines if reducer will not be applied to remove unnecessary features")
 parser.add_argument('--disable_normalization', dest='disable_normalization', action='store_false',
-                   help="Defines if normalization (-1,1) will not be applied to indices ndwi, ndvi and sabi")
+                   help="Defines if normalization (-1,1) will not be applied to indices mndwi, ndvi and sabi")
 parser.add_argument('--regression_mode', dest='regression_mode', action='store_false',
                    help="Defines whether will use raw values or classes in the regression models")
 parser.add_argument('--class_weight', dest='class_weight', action='store_true',

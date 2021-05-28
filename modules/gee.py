@@ -314,14 +314,14 @@ def apply_masks(image, params: dict):
   water_nocloud   = water.updateMask(nocloud).rename('water_nocloud')
       
   # Apply the indexes available in the image
-  ndwi            = image.expression('(green - swir) / (green + swir)',{'swir':image.select(params['swir']).multiply(0.0001),'green':image.select(params['green']).multiply(0.0001)}).rename('ndwi').cast({"ndwi": "double"})
+  mndwi           = image.expression('(green - swir) / (green + swir)',{'swir':image.select(params['swir']).multiply(0.0001),'green':image.select(params['green']).multiply(0.0001)}).rename('mndwi').cast({"mndwi": "double"}) # Xu (2006)
   ndvi            = image.expression('(nir - red) / (nir + red)',{'nir':image.select(params['nir']).multiply(0.0001),'red':image.select(params['red']).multiply(0.0001)}).rename('ndvi').cast({"ndvi": "double"})
   sabi            = image.expression('(nir - red) / (blue + green)',{'nir':image.select(params['nir']).multiply(0.0001),'red':image.select(params['red']).multiply(0.0001),'blue':image.select(params['blue']).multiply(0.0001),'green':image.select(params['green']).multiply(0.0001)}).rename('sabi').cast({"sabi": "double"}) # Alawadi (2010)
   fai             = image.expression('nir - (red + (swir - red) * ((c_nir - c_red) / (c_swir - c_red)))',{'swir':image.select(params['swir']).multiply(0.0001),'nir':image.select(params['nir']).multiply(0.0001),'red':image.select(params['red']).multiply(0.0001),'c_nir':params['c_nir'],'c_red':params['c_red'],'c_swir':params['c_swir']}).rename('fai').cast({"fai": "double"}) # Oyama et al (2015)
-  label           = image.expression('((cloud == 1) ? -1 : (ndwi < 0.3)+(ndvi > -0.15)+(sabi > -0.10)+(fai > -0.004))', {'ndwi': ndwi.select('ndwi'), 'ndvi': ndvi.select('ndvi'), 'sabi': sabi.select('sabi'), 'fai': fai.select('fai'), 'cloud': cloud.select('cloud')}).rename('label')
+  label           = image.expression('((cloud == 1) ? -1 : (mndwi < 0.0)+(ndvi > -0.15)+(sabi > -0.10)+(fai > -0.004))', {'mndwi': mndwi.select('mndwi'), 'ndvi': ndvi.select('ndvi'), 'sabi': sabi.select('sabi'), 'fai': fai.select('fai'), 'cloud': cloud.select('cloud')}).rename('label')
 
   # Create the bands to the image and return it
-  return image.addBands([water, water_nocloud, cloud, nocloud, ndwi, ndvi, sabi, fai, label])
+  return image.addBands([water, water_nocloud, cloud, nocloud, mndwi, ndvi, sabi, fai, label])
 
 
 # Apply to a mask and return image with the new band

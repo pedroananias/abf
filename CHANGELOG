@@ -105,3 +105,6 @@ Version 28
 - Added reference validation (Earth Earth Engine)
 - Added reduction parameter (meadin or min, if using referente validation)
 - Major fixes in the statistics functions
+
+Version 29
+- Changed MNDWI threshold to 0.0 according to c
