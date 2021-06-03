@@ -72,7 +72,6 @@ done
 NAME="taihu"
 LAT_LON="119.85091169141491,31.553377091606887,120.64485195719814,30.91800041328722"
 declare -a DATES=("2016-08-26" "2017-07-25")
-declare -a REDUCTIONS=("median" "min") # "median" "min"
 
 # EXECUTIONS
 for reduction in "${REDUCTIONS[@]}"
