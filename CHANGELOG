@@ -111,3 +111,6 @@ Version 29
 
 Version 30
 - Fixed errors in LSTM modelling process
+
+Version 31
+- Fixed erros in results saving process

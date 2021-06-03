@@ -9,8 +9,8 @@ SCRIPT="script.py"
 CLEAR="sudo pkill -f /home/pedro/anaconda3"
 
 # ATTRIBUTES
-declare -a DAYS_THRESHOLD=("60" "90" "180" "365" "730") # "90" "180" "365" "730"
-declare -a REDUCTIONS=("median" "min") # "median" "min"
+declare -a DAYS_THRESHOLD=("180") # "90" "180" "365" "730"
+declare -a REDUCTIONS=("median") # "median" "min"
 declare -a MODELS=("rf" "svm" "lstm") # "rf" "svm" "mlp" "lstm"
 declare EXTRA="--grid_size=7 --days_in=4 --days_out=5"
 
@@ -72,6 +72,7 @@ done
 NAME="taihu"
 LAT_LON="119.85091169141491,31.553377091606887,120.64485195719814,30.91800041328722"
 declare -a DATES=("2016-08-26" "2017-07-25")
+declare -a REDUCTIONS=("median" "min") # "median" "min"
 
 # EXECUTIONS
 for reduction in "${REDUCTIONS[@]}"

@@ -108,7 +108,7 @@ class Abf:
   # dataframes
   df_columns                  = ['pixel','index','row','column','date','doy','lat','lon']+attributes
   df_columns_clear            = ['pixel','index','row','column','date','doy','lat','lon']+attributes_clear
-  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'attribute_lat_lon', 'attribute_doy', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'r2score', 'tp', 'tn', 'fp', 'fn']
+  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'attribute_lat_lon', 'attribute_doy', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'r2score', 'tp', 'tn', 'fp', 'fn', 'tp_pct', 'tn_pct', 'fp_pct', 'fn_pct']
   df_columns_scene            = ['date','model','validation', 'prediction', 'difference']
   df_timeseries               = None
   df_timeseries_scene         = None
@@ -1215,18 +1215,6 @@ class Abf:
         print()
         print("Creating the LSTM (Bidirection w/ Encoder-Decoder) with RandomizedSearchCV parameterization model...")
 
-        # attributes
-        #days_in   = self.days_in
-        #days_out  = self.days_out
-        #in_size = len(self.attributes_selected)
-        #out_size = 1 if self.class_mode else len(self.indices_thresholds)
-
-        # # enabled attributes
-        # if not self.attribute_lat_lon:
-        #   in_size = in_size - 2
-        # if not self.attribute_doy:
-        #   in_size = in_size - 1
-
         #################################
         # Custom LSTM Model
         # Change KerasRegressor
@@ -1860,6 +1848,9 @@ class Abf:
       df_prediction.loc[(df_prediction['label'].isnull()), 'label'] = df_prediction[df_prediction['label'].isnull()]['label_predicted']
       df_prediction.reset_index(inplace=True, drop=True)
 
+      # fix indetermined pixels
+      df_prediction.loc[(df_prediction['label_predicted']<len(attributes_clear)), 'label_predicted'] = 0
+
       # calculation of anomalie occurrence based on pixel windows (without indetermined)
       for i, date in enumerate(self.predict_dates):
 
@@ -2106,7 +2097,11 @@ class Abf:
               'tp':               int(measures["tp"]),
               'tn':               int(measures["tn"]),
               'fp':               int(measures["fp"]),
-              'fn':               int(measures["fn"])
+              'fn':               int(measures["fn"]),
+              'tp_pct':           (int(measures["tp"])/(int(measures["tp"])+int(measures["tn"])+int(measures["fp"])+int(measures["fn"])))*100,
+              'tn_pct':           (int(measures["tn"])/(int(measures["tp"])+int(measures["tn"])+int(measures["fp"])+int(measures["fn"])))*100,
+              'fp_pct':           (int(measures["fp"])/(int(measures["tp"])+int(measures["tn"])+int(measures["fp"])+int(measures["fn"])))*100,
+              'fn_pct':           (int(measures["fn"])/(int(measures["tp"])+int(measures["tn"])+int(measures["fp"])+int(measures["fn"])))*100
             })
 
             # plot title
@@ -2193,10 +2188,14 @@ class Abf:
               'rmse':             float(measures["rmse"]),
               'mae':              float(measures["mae"]),
               'r2score':          float(measures["r2score"]),
-              'tp':               int(measures["tp"]),
-              'tn':               int(measures["tn"]),
-              'fp':               int(measures["fp"]),
-              'fn':               int(measures["fn"])
+              'tp':               0,
+              'tn':               0,
+              'fp':               0,
+              'fn':               0,
+              'tp_pct':           0,
+              'tn_pct':           0,
+              'fp_pct':           0,
+              'fn_pct':           0
             })
 
             # plot title
@@ -2310,10 +2309,14 @@ class Abf:
               'rmse':             float(measures["rmse"]),
               'mae':              float(measures["mae"]),
               'r2score':          float(measures["r2score"]),
-              'tp':               int(measures["tp"]),
-              'tn':               int(measures["tn"]),
-              'fp':               int(measures["fp"]),
-              'fn':               int(measures["fn"])
+              'tp':               0,
+              'tn':               0,
+              'fp':               0,
+              'fn':               0,
+              'tp_pct':           0,
+              'tn_pct':           0,
+              'fp_pct':           0,
+              'fn_pct':           0
             })
 
         # save plot
@@ -2575,7 +2578,11 @@ class Abf:
           'tp':               int(measures["tp"]),
           'tn':               int(measures["tn"]),
           'fp':               int(measures["fp"]),
-          'fn':               int(measures["fn"])
+          'fn':               int(measures["fn"]),
+          'tp_pct':           (int(measures["tp"])/(int(measures["tp"])+int(measures["tn"])+int(measures["fp"])+int(measures["fn"])))*100,
+          'tn_pct':           (int(measures["tn"])/(int(measures["tp"])+int(measures["tn"])+int(measures["fp"])+int(measures["fn"])))*100,
+          'fp_pct':           (int(measures["fp"])/(int(measures["tp"])+int(measures["tn"])+int(measures["fp"])+int(measures["fn"])))*100,
+          'fn_pct':           (int(measures["fn"])/(int(measures["tp"])+int(measures["tn"])+int(measures["fp"])+int(measures["fn"])))*100
         })
 
         # plot
@@ -2653,10 +2660,14 @@ class Abf:
           'rmse':             float(measures["rmse"]),
           'mae':              float(measures["mae"]),
           'r2score':          float(measures["r2score"]),
-          'tp':               int(measures["tp"]),
-          'tn':               int(measures["tn"]),
-          'fp':               int(measures["fp"]),
-          'fn':               int(measures["fn"])
+          'tp':               0,
+          'tn':               0,
+          'fp':               0,
+          'fn':               0,
+          'tp_pct':           0,
+          'tn_pct':           0,
+          'fp_pct':           0,
+          'fn_pct':           0
         })
 
         # plot
@@ -2750,10 +2761,14 @@ class Abf:
           'rmse':             float(measures["rmse"]),
           'mae':              float(measures["mae"]),
           'r2score':          float(measures["r2score"]),
-          'tp':               int(measures["tp"]),
-          'tn':               int(measures["tn"]),
-          'fp':               int(measures["fp"]),
-          'fn':               int(measures["fn"])
+          'tp':               0,
+          'tn':               0,
+          'fp':               0,
+          'fn':               0,
+          'tp_pct':           0,
+          'tn_pct':           0,
+          'fp_pct':           0,
+          'fn_pct':           0
         })
 
         # plot
@@ -2909,7 +2924,11 @@ class Abf:
               'tp':               int(measures["tp"]),
               'tn':               int(measures["tn"]),
               'fp':               int(measures["fp"]),
-              'fn':               int(measures["fn"])
+              'fn':               int(measures["fn"]),
+              'tp_pct':           (int(measures["tp"])/(int(measures["tp"])+int(measures["tn"])+int(measures["fp"])+int(measures["fn"])))*100,
+              'tn_pct':           (int(measures["tn"])/(int(measures["tp"])+int(measures["tn"])+int(measures["fp"])+int(measures["fn"])))*100,
+              'fp_pct':           (int(measures["fp"])/(int(measures["tp"])+int(measures["tn"])+int(measures["fp"])+int(measures["fn"])))*100,
+              'fn_pct':           (int(measures["fn"])/(int(measures["tp"])+int(measures["tn"])+int(measures["fp"])+int(measures["fn"])))*100
             }, ignore_index=True)
 
     # warning
