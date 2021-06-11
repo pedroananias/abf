@@ -1285,7 +1285,6 @@ class Abf:
         # warning
         print("finished!")
       except:
-        sys.exit()
         pass
 
     #########################################################################
@@ -3113,6 +3112,87 @@ class Abf:
     # save it to file
     fig.savefig(path, bbox_inches='tight')
 
+    # warning
+    print("finished!")
+
+
+  # save a image to file
+  def save_image_tiff(self, image: ee.Image, date: dt, path: str, folderName: str, options: dict = {'min':0, 'max': 3000}):
+    
+    # warning
+    print()
+    print("Saving image in tiff to file '"+path+"' (first try, based on image size) or to your Google Drive at folder '"+str(folderName)+"'...")
+
+    # attributes
+    attributes = [a for a in self.attributes_clear if a != 'cloud']
+
+    # check if its landsat merge
+    bands = [self.sensor_params['red'], self.sensor_params['green'], self.sensor_params['blue'], self.sensor_params['nir'], self.sensor_params['swir']]+attributes
+    if self.sensor_params["sensor"] == "landsat578":
+      sensor = image.get(self.sensor_params["property_id"]).getInfo()
+      if 'LT05' in sensor:
+        bands = [gee.get_sensor_params("landsat5")['red'], gee.get_sensor_params("landsat5")['green'], gee.get_sensor_params("landsat5")['blue'], gee.get_sensor_params("landsat5")['nir'], gee.get_sensor_params("landsat5")['swir']]+attributes
+      elif 'LE07' in sensor:
+        bands = [gee.get_sensor_params("landsat7")['red'], gee.get_sensor_params("landsat7")['green'], gee.get_sensor_params("landsat7")['blue'], gee.get_sensor_params("landsat7")['nir'], gee.get_sensor_params("landsat7")['swir']]+attributes
+      elif 'LC08' in sensor:
+        bands = [gee.get_sensor_params("landsat")['red'], gee.get_sensor_params("landsat")['green'], gee.get_sensor_params("landsat")['blue'], gee.get_sensor_params("landsat")['nir'], gee.get_sensor_params("landsat")['swir']]+attributes
+
+    # fix image bounds
+    image = self.clip_image(image=image)
+
+    # rgb and false color composite
+    imageRGB = image.select([self.sensor_params['red'], self.sensor_params['green'], self.sensor_params['blue']]).visualize(min=options['min'], max=options['max'])
+    imageFCO = image.select([self.sensor_params['nir'], self.sensor_params['red'], self.sensor_params['green']]).visualize(min=options['min'], max=options['max'])
+
+    # Separated bands
+    # First try, save in local folder
+    try:
+      print("Trying to save "+date.strftime("%Y-%m-%d")+" GeoTIFF to local folder...")
+      image_download_url = image.select(bands).getDownloadUrl({"name": date.strftime("%Y-%m-%d"), "filePerBand": True, "region": self.geometry})
+      open(path, 'wb').write(requests.get(image_download_url, allow_redirects=True).content)
+      print("finished!")
+
+    # Second try, save in Google Drive
+    except:
+      print("Error! It was not possible to save GeoTIFF localy. Trying to save it in Google Drive...")
+      print(str(traceback.format_exc()))
+      for band in bands:
+        task = ee.batch.Export.image.toDrive(image=image.select(band), folder=folderName, description=date.strftime("%Y-%m-%d")+"_"+str(band), region=self.geometry)
+        task.start()
+        print(task.status())
+
+    # RGB
+    # First try, save in local folder
+    try:
+      print("Trying to save "+date.strftime("%Y-%m-%d")+" RGB GeoTIFF to local folder...")
+      image_download_url = imageRGB.getDownloadUrl({"name": date.strftime("%Y-%m-%d")+"_rgb", "filePerBand": False, "region": self.geometry})
+      open(path+"_rgb", 'wb').write(requests.get(image_download_url, allow_redirects=True).content)
+      print("finished!")
+
+    # Second try, save in Google Drive
+    except:
+      print("Error! It was not possible to save RGB GeoTIFF localy. Trying to save it in Google Drive...")
+      print(str(traceback.format_exc()))
+      task = ee.batch.Export.image.toDrive(image=imageRGB, folder=folderName, description=date.strftime("%Y-%m-%d")+"_rgb", region=self.geometry)
+      task.start()
+      print(task.status())
+
+    # FCO
+    # First try, save in local folder
+    try:
+      print("Trying to save "+date.strftime("%Y-%m-%d")+" FALSE COLOR GeoTIFF to local folder...")
+      image_download_url = imageFCO.getDownloadUrl({"name": date.strftime("%Y-%m-%d")+"_fco", "filePerBand": False, "region": self.geometry})
+      open(path+"_fco", 'wb').write(requests.get(image_download_url, allow_redirects=True).content)
+      print("finished!")
+
+    # Second try, save in Google Drive
+    except:
+      print("Error! It was not possible to save FALSE COLOR GeoTIFF localy. Trying to save it in Google Drive...")
+      print(str(traceback.format_exc()))
+      task = ee.batch.Export.image.toDrive(image=imageFCO, folder=folderName, description=date.strftime("%Y-%m-%d")+"_fco", region=self.geometry)
+      task.start()
+      print(task.status())
+    
     # warning
     print("finished!")
 

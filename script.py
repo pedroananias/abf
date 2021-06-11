@@ -28,7 +28,7 @@ import gc
 
 # Sub
 from datetime import datetime as dt
-from datetime import timedelta
+from datetime import timedelta as td
 
 # Extras modules
 from modules import misc, gee, abf
@@ -182,6 +182,16 @@ try:
   # preprocessing
   algorithm.process_timeseries_data()
   algorithm.process_training_data(df=algorithm.df_timeseries)
+
+  # # save tiff
+  # # increase sensor collectino to get new images
+  # collection, _         = gee.get_sensor_collections(geometry=algorithm.geometry, sensor=algorithm.sensor, dates=[dt.strftime(algorithm.dates_timeseries[0], "%Y-%m-%d"), dt.strftime(algorithm.predict_dates[-1] + td(days=1), "%Y-%m-%d")])
+  # algorithm.collection  = collection
+  # for date in algorithm.predict_dates:
+  #   if not os.path.exists(folder+"/tiff"):
+  #     os.mkdir(folder+"/tiff")
+  #   algorithm.save_image_tiff(image=algorithm.extract_image_from_collection(date=date, apply_attributes=False, convolve_force_disabled=True), date=date, path=folder+"/tiff/"+date.strftime("%Y-%m-%d")+".zip", folderName="abf_"+args.name)
+  # sys.exit()
 
   # save pairplots
   if args.save_pairplots == True:
