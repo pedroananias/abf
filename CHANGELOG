@@ -114,3 +114,6 @@ Version 30
 
 Version 31
 - Fixed erros in results saving process
+
+Version 32
+- Added support for shapefile cropping

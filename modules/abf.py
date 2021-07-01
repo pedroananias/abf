@@ -167,7 +167,8 @@ class Abf:
                pca_size:          float         = 0.900,
                attribute_lat_lon: bool          = False,
                attribute_doy:     bool          = True,
-               test_mode:         bool          = False):
+               test_mode:         bool          = False,
+               shapefile:         str           = None):
     
     # get sensor parameters
     self.sensor_params  = gee.get_sensor_params(sensor)
@@ -206,6 +207,8 @@ class Abf:
     self.pca_size                     = pca_size
     self.attribute_lat_lon            = attribute_lat_lon
     self.attribute_doy                = attribute_doy
+    self.shapefile_url                = shapefile
+    self.shapefile                    = ee.FeatureCollection(self.shapefile_url) if self.shapefile_url else None
 
     # fix days_in and days_out (avoid errors)
     self.days_in                      = self.days_in  if self.days_in   >= 1 else 1
@@ -240,8 +243,11 @@ class Abf:
       # creating final sensor collection
       collection, collection_water      = gee.get_sensor_collections(geometry=self.geometry, sensor=self.sensor, dates=[dt.strftime(self.dates_timeseries[0], "%Y-%m-%d"), dt.strftime(self.dates_timeseries[1], "%Y-%m-%d")])
 
-      # create useful time series
-      self.collection                   = collection
+      # create usefull time series
+      if self.shapefile:
+        self.collection = collection.map(lambda image: image.clip(self.shapefile))
+      else:
+        self.collection = collection
       self.collection_water             = collection_water
       self.dates_timeseries_interval    = misc.remove_duplicated_dates([dt.strptime(d, "%Y-%m-%d") for d in self.collection.map(lambda image: ee.Feature(None, {'date': image.date().format('YYYY-MM-dd')})).distinct('date').aggregate_array("date").getInfo()])
 
@@ -529,7 +535,7 @@ class Abf:
 
   # get cache files for datte
   def get_cache_files(self, date):
-    prefix            = self.hash_string.encode()+self.lat_lon.encode()+self.sensor.encode()+str(self.morph_op).encode()+str(self.morph_op_iters).encode()+str(self.convolve).encode()+str(self.convolve_radius).encode()
+    prefix            = self.hash_string.encode()+self.lat_lon.encode()+self.sensor.encode()+str(self.morph_op).encode()+str(self.morph_op_iters).encode()+str(self.convolve).encode()+str(self.convolve_radius).encode()+str(self.shapefile_url).encode()
     hash_image        = hashlib.md5(prefix+(date.strftime("%Y-%m-%d")+'original').encode())
     hash_timeseries   = hashlib.md5(prefix+(self.dates_timeseries[0].strftime("%Y-%m-%d")+self.dates_timeseries[1].strftime("%Y-%m-%d")).encode()+str(self.days_in).encode()+str(self.days_out).encode()+str(self.normalized).encode()+str(self.fill_missing).encode()+str(self.reducer).encode()+str(self.class_mode).encode())
     hash_classifiers  = hashlib.md5(prefix+(self.dates_timeseries[0].strftime("%Y-%m-%d")+self.dates_timeseries[1].strftime("%Y-%m-%d")).encode()+('classifier').encode())

@@ -8,7 +8,7 @@
 #####################################################################################################################################
 
 # ### Version
-version = "V31"
+version = "V32"
 
 
 # ### Module imports
@@ -94,6 +94,8 @@ parser.add_argument('--save_pairplots', dest='save_pairplots', action='store_tru
                    help="Save pairplots from attributes and indices")
 parser.add_argument('--save_train', dest='save_train', action='store_true',
                    help="Enable saving the training dataset (csv)")
+parser.add_argument('--shapefile', dest='shapefile', action='store',
+                   help="Use a shapefile to clip a region of interest")
 
 # parsing arguments
 args = parser.parse_args()
@@ -177,7 +179,8 @@ try:
                       attribute_lat_lon=args.enable_attribute_lat_lon,
                       attribute_doy=args.disable_attribute_doy,
                       shuffle=args.disable_shuffle,
-                      test_mode=False)
+                      test_mode=False,
+                      shapefile=args.shapefile)
 
   # preprocessing
   algorithm.process_timeseries_data()
