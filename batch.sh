@@ -12,7 +12,7 @@ CLEAR="sudo pkill -f /home/pedro/anaconda3"
 declare -a DAYS_THRESHOLD=("180") # "90" "180" "365" "730"
 declare -a REDUCTIONS=("median") # "median" "min"
 declare -a MODELS=("rf" "svm" "lstm") # "rf" "svm" "mlp" "lstm"
-declare EXTRA="--grid_size=7 --days_in=4 --days_out=5"
+declare EXTRA="--spatial_context_size=7 --past_steps=4 --forecasting_period=5"
 
 # SHOW BASE DIR
 echo "$PYTHON $BASEDIR/$SCRIPT"
@@ -32,7 +32,7 @@ do
 		do
 			for day_threshold in "${DAYS_THRESHOLD[@]}"
 			do
-				eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$date --model=$model --days_threshold=$day_threshold --reduction=$reduction $EXTRA"
+				eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --instant=$date --model=$model --spanning_period=$day_threshold --reduction=$reduction $EXTRA"
 			done
 		done
 	done
@@ -57,7 +57,7 @@ do
 		do
 			for day_threshold in "${DAYS_THRESHOLD[@]}"
 			do
-				eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$date --model=$model --days_threshold=$day_threshold --reduction=$reduction $EXTRA"
+				eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --instant=$date --model=$model --spanning_period=$day_threshold --reduction=$reduction $EXTRA"
 			done
 		done
 	done
@@ -82,7 +82,7 @@ do
 		do
 			for day_threshold in "${DAYS_THRESHOLD[@]}"
 			do
-				eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --from_date=$date --model=$model --days_threshold=$day_threshold --reduction=$reduction $EXTRA"
+				eval "$PYTHON $BASEDIR/$SCRIPT --lat_lon=$LAT_LON --name=$NAME --instant=$date --model=$model --spanning_period=$day_threshold --reduction=$reduction $EXTRA"
 			done
 		done
 	done
