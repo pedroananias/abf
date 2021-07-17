@@ -8,7 +8,7 @@
 #####################################################################################################################################
 
 # ### Version
-version = "V32"
+version = "V33"
 
 
 # ### Module imports
@@ -42,18 +42,18 @@ parser = argparse.ArgumentParser(description=version)
 # create arguments
 parser.add_argument('--lat_lon', dest='lat_lon', action='store', default="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826",
                    help="Two diagnal points (Latitude 1, Longitude 1, Latitude 2, Longitude 2) of the study area")
-parser.add_argument('--from_date', dest='from_date', action='store', default="2013-10-11",
+parser.add_argument('--instant', dest='instant', action='store', default="2013-10-11",
                    help="Date to end time series (it will forecast 5 days starting from this date)")
 parser.add_argument('--name', dest='name', action='store', default="erie",
                    help="Place where to save generated files")
-parser.add_argument('--days_threshold', dest='days_threshold', action='store', type=int, default=180,
-                   help="Days threshold used to build the timeseries and training set")
-parser.add_argument('--days_in', dest='days_in', action='store', type=int, default=4,
-                   help="Day threshold to be used as input forecast")
-parser.add_argument('--days_out', dest='days_out', action='store', type=int, default=5,
-                   help="Day threshold to be used as output forecast")
-parser.add_argument('--grid_size', dest='grid_size', action='store', type=int, default=7,
-                   help="Grid size in pixels that will be used in grid-wise results")
+parser.add_argument('--spanning_period', dest='spanning_period', action='store', type=int, default=180,
+                   help="Spanning period used to build the timeseries and training set")
+parser.add_argument('--past_steps', dest='past_steps', action='store', type=int, default=4,
+                   help="Past steps to be used as input forecast")
+parser.add_argument('--forecasting_period', dest='forecasting_period', action='store', type=int, default=5,
+                   help="Forecasting period to be used as output forecast")
+parser.add_argument('--spatial_context_size', dest='spatial_context_size', action='store', type=int, default=7,
+                   help="Spatial context size in pixels that will be used in continuous/occurrences results")
 parser.add_argument('--model', dest='model', action='store', default="rf",
                    help="Select the desired module: mlp, lstm, rf, svm or all (None)")
 parser.add_argument('--fill_missing', dest='fill_missing', action='store', default="time",
@@ -94,6 +94,8 @@ parser.add_argument('--save_pairplots', dest='save_pairplots', action='store_tru
                    help="Save pairplots from attributes and indices")
 parser.add_argument('--save_train', dest='save_train', action='store_true',
                    help="Enable saving the training dataset (csv)")
+parser.add_argument('--cloud_threshold', dest='cloud_threshold', action='store', type=float, default=0.50,
+                   help="Define which cloud threshold will be used in the timeseries modelling process")
 parser.add_argument('--shapefile', dest='shapefile', action='store',
                    help="Use a shapefile to clip a region of interest")
 
@@ -144,13 +146,13 @@ try:
   # ### ABF execution
 
   # folder to save results from algorithm at
-  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',m='+str(args.model)+',d='+str(args.from_date)+',dt='+str(args.days_threshold)+',din='+str(args.days_in)+',dout='+str(args.days_out)+',g='+str(args.grid_size)+',r='+str(args.reduction)+']'
+  folder = folderRoot+'/'+dt.now().strftime("%Y%m%d_%H%M%S")+'[v='+str(version)+'-'+str(args.name)+',m='+str(args.model)+',d='+str(args.instant)+',ct='+str(args.cloud_threshold)+']'
   if not os.path.exists(folder):
     os.mkdir(folder)
 
   # create algorithm
-  algorithm = abf.Abf(days_threshold=args.days_threshold,
-                      grid_size=args.grid_size,
+  algorithm = abf.Abf(days_threshold=args.spanning_period,
+                      grid_size=args.spatial_context_size,
                       sensor="modis",
                       geometry=geometry,
                       lat_lon=args.lat_lon,
@@ -162,9 +164,9 @@ try:
                       convolve=args.convolve,
                       convolve_radius=args.convolve_radius,
                       scaler=args.scaler,
-                      days_in=args.days_in,
-                      days_out=args.days_out,
-                      from_date=args.from_date,
+                      days_in=args.past_steps,
+                      days_out=args.forecasting_period,
+                      from_date=args.instant,
                       model=args.model,
                       fill_missing=args.fill_missing,
                       remove_dummies=args.remove_dummies,
@@ -180,21 +182,12 @@ try:
                       attribute_doy=args.disable_attribute_doy,
                       shuffle=args.disable_shuffle,
                       test_mode=False,
-                      shapefile=args.shapefile)
+                      shapefile=args.shapefile,
+                      cloud_threshold=args.cloud_threshold)
 
   # preprocessing
   algorithm.process_timeseries_data()
   algorithm.process_training_data(df=algorithm.df_timeseries)
-
-  # # save tiff
-  # # increase sensor collectino to get new images
-  # collection, _         = gee.get_sensor_collections(geometry=algorithm.geometry, sensor=algorithm.sensor, dates=[dt.strftime(algorithm.dates_timeseries[0], "%Y-%m-%d"), dt.strftime(algorithm.predict_dates[-1] + td(days=1), "%Y-%m-%d")])
-  # algorithm.collection  = collection
-  # for date in algorithm.predict_dates:
-  #   if not os.path.exists(folder+"/tiff"):
-  #     os.mkdir(folder+"/tiff")
-  #   algorithm.save_image_tiff(image=algorithm.extract_image_from_collection(date=date, apply_attributes=False, convolve_force_disabled=True), date=date, path=folder+"/tiff/"+date.strftime("%Y-%m-%d")+".zip", folderName="abf_"+args.name)
-  # sys.exit()
 
   # save pairplots
   if args.save_pairplots == True:

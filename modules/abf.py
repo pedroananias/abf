@@ -108,7 +108,7 @@ class Abf:
   # dataframes
   df_columns                  = ['pixel','index','row','column','date','doy','lat','lon']+attributes
   df_columns_clear            = ['pixel','index','row','column','date','doy','lat','lon']+attributes_clear
-  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'attribute_lat_lon', 'attribute_doy', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'r2score', 'tp', 'tn', 'fp', 'fn', 'tp_pct', 'tn_pct', 'fp_pct', 'fn_pct']
+  df_columns_results          = ['model', 'type', 'sensor', 'path', 'date_predicted', 'date_execution', 'time_execution', 'runtime', 'days_threshold', 'cloud_threshold', 'grid_size', 'size_train', 'size_dates', 'scaler', 'morph_op', 'morph_op_iters', 'convolve', 'convolve_radius', 'days_in', 'days_out', 'fill_missing', 'remove_dummies', 'shuffle', 'reducer', 'normalized', 'class_mode', 'class_weight', 'propagate', 'rs_train_size', 'rs_iter', 'pca_size', 'attribute_lat_lon', 'attribute_doy', 'acc', 'bacc', 'kappa', 'vkappa', 'tau', 'vtau', 'mcc', 'f1score', 'rmse', 'mae', 'r2score', 'tp', 'tn', 'fp', 'fn', 'tp_pct', 'tn_pct', 'fp_pct', 'fn_pct']
   df_columns_scene            = ['date','model','validation', 'prediction', 'difference']
   df_timeseries               = None
   df_timeseries_scene         = None
@@ -122,7 +122,7 @@ class Abf:
   df_scene                    = None
 
   # hash
-  hash_string                 = "abf-20210329"
+  hash_string                 = "abf-20210717"
 
   # dates
   classification_dates        = None
@@ -137,7 +137,7 @@ class Abf:
   # constructor
   def __init__(self,
                geometry:          ee.Geometry,
-               days_threshold:    int           = 90,
+               days_threshold:    int           = 180,
                grid_size:         int           = 7,
                sensor:            str           = "modis",
                scale:             int           = None,
@@ -168,7 +168,8 @@ class Abf:
                attribute_lat_lon: bool          = False,
                attribute_doy:     bool          = True,
                test_mode:         bool          = False,
-               shapefile:         str           = None):
+               shapefile:         str           = None,
+               cloud_threshold:   float         = 0.50):
     
     # get sensor parameters
     self.sensor_params  = gee.get_sensor_params(sensor)
@@ -209,6 +210,7 @@ class Abf:
     self.attribute_doy                = attribute_doy
     self.shapefile_url                = shapefile
     self.shapefile                    = ee.FeatureCollection(self.shapefile_url) if self.shapefile_url else None
+    self.cloud_threshold              = cloud_threshold if cloud_threshold and cloud_threshold >= 0 and cloud_threshold <= 1.0 else 0.50
 
     # fix days_in and days_out (avoid errors)
     self.days_in                      = self.days_in  if self.days_in   >= 1 else 1
@@ -535,7 +537,7 @@ class Abf:
 
   # get cache files for datte
   def get_cache_files(self, date):
-    prefix            = self.hash_string.encode()+self.lat_lon.encode()+self.sensor.encode()+str(self.morph_op).encode()+str(self.morph_op_iters).encode()+str(self.convolve).encode()+str(self.convolve_radius).encode()+str(self.shapefile_url).encode()
+    prefix            = self.hash_string.encode()+self.lat_lon.encode()+self.sensor.encode()+str(self.morph_op).encode()+str(self.morph_op_iters).encode()+str(self.convolve).encode()+str(self.convolve_radius).encode()+str(self.shapefile_url).encode()+str(self.cloud_threshold).encode()
     hash_image        = hashlib.md5(prefix+(date.strftime("%Y-%m-%d")+'original').encode())
     hash_timeseries   = hashlib.md5(prefix+(self.dates_timeseries[0].strftime("%Y-%m-%d")+self.dates_timeseries[1].strftime("%Y-%m-%d")).encode()+str(self.days_in).encode()+str(self.days_out).encode()+str(self.normalized).encode()+str(self.fill_missing).encode()+str(self.reducer).encode()+str(self.class_mode).encode())
     hash_classifiers  = hashlib.md5(prefix+(self.dates_timeseries[0].strftime("%Y-%m-%d")+self.dates_timeseries[1].strftime("%Y-%m-%d")).encode()+('classifier').encode())
@@ -2064,7 +2066,8 @@ class Abf:
               'date_execution':   dt.now().strftime("%Y-%m-%d"),
               'time_execution':   dt.now().strftime("%H:%M:%S"),
               'runtime':          str(self.classifiers_runtime[model]),
-              'days_threshold':   str(self.days_threshold), 
+              'days_threshold':   str(self.days_threshold),
+              'cloud_threshold':  str(self.cloud_threshold),
               'grid_size':        str(self.grid_size),
               'size_train':       str("D="+str(self.df_train[0].shape)+"Dy="+str(self.df_train[0].shape)+";R="+str(self.df_randomizedsearch[0].shape)+";Ry="+str(self.df_randomizedsearch[1].shape)),
               'size_dates':       str(len(self.dates_timeseries_interval)),
@@ -2159,6 +2162,7 @@ class Abf:
               'time_execution':   dt.now().strftime("%H:%M:%S"),
               'runtime':          str(self.classifiers_runtime[model]),
               'days_threshold':   str(self.days_threshold), 
+              'cloud_threshold':  str(self.cloud_threshold),
               'grid_size':        str(self.grid_size),
               'size_train':       str("D="+str(self.df_train[0].shape)+"Dy="+str(self.df_train[0].shape)+";R="+str(self.df_randomizedsearch[0].shape)+";Ry="+str(self.df_randomizedsearch[1].shape)),
               'size_dates':       str(len(self.dates_timeseries_interval)),
@@ -2280,6 +2284,7 @@ class Abf:
               'time_execution':   dt.now().strftime("%H:%M:%S"),
               'runtime':          str(self.classifiers_runtime[model]),
               'days_threshold':   str(self.days_threshold), 
+              'cloud_threshold':  str(self.cloud_threshold),
               'grid_size':        str(self.grid_size),
               'size_train':       str("D="+str(self.df_train[0].shape)+"Dy="+str(self.df_train[0].shape)+";R="+str(self.df_randomizedsearch[0].shape)+";Ry="+str(self.df_randomizedsearch[1].shape)),
               'size_dates':       str(len(self.dates_timeseries_interval)),
@@ -2546,6 +2551,7 @@ class Abf:
           'time_execution':   dt.now().strftime("%H:%M:%S"),
           'runtime':          str(self.classifiers_runtime[model]),
           'days_threshold':   str(self.days_threshold), 
+          'cloud_threshold':  str(self.cloud_threshold),
           'grid_size':        str(self.grid_size),
           'size_train':       str("D="+str(self.df_train[0].shape)+"Dy="+str(self.df_train[0].shape)+";R="+str(self.df_randomizedsearch[0].shape)+";Ry="+str(self.df_randomizedsearch[1].shape)),
           'size_dates':       str(len(self.dates_timeseries_interval)),
@@ -2631,6 +2637,7 @@ class Abf:
           'time_execution':   dt.now().strftime("%H:%M:%S"),
           'runtime':          str(self.classifiers_runtime[model]),
           'days_threshold':   str(self.days_threshold), 
+          'cloud_threshold':  str(self.cloud_threshold),
           'grid_size':        str(self.grid_size),
           'size_train':       str("D="+str(self.df_train[0].shape)+"Dy="+str(self.df_train[0].shape)+";R="+str(self.df_randomizedsearch[0].shape)+";Ry="+str(self.df_randomizedsearch[1].shape)),
           'size_dates':       str(len(self.dates_timeseries_interval)),
@@ -2732,6 +2739,7 @@ class Abf:
           'time_execution':   dt.now().strftime("%H:%M:%S"),
           'runtime':          str(self.classifiers_runtime[model]),
           'days_threshold':   str(self.days_threshold), 
+          'cloud_threshold':  str(self.cloud_threshold),
           'grid_size':        str(self.grid_size),
           'size_train':       str("D="+str(self.df_train[0].shape)+"Dy="+str(self.df_train[0].shape)+";R="+str(self.df_randomizedsearch[0].shape)+";Ry="+str(self.df_randomizedsearch[1].shape)),
           'size_dates':       str(len(self.dates_timeseries_interval)),
@@ -2893,6 +2901,7 @@ class Abf:
               'time_execution':   dt.now().strftime("%H:%M:%S"),
               'runtime':          str(self.classifiers_runtime[model]),
               'days_threshold':   str(self.days_threshold), 
+              'cloud_threshold':  str(self.cloud_threshold),
               'grid_size':        str(self.grid_size),
               'size_train':       str(array_labels),
               'size_dates':       str(len(self.dates_timeseries_interval)),

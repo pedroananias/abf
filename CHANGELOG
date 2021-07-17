@@ -117,3 +117,6 @@ Version 31
 
 Version 32
 - Added support for shapefile cropping
+
+Version 33
+- Changed parameters named to correlate with written paper
