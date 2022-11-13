@@ -1,5 +1,11 @@
-data
-cache*
+results
+.cache
 debug
 nohup.out
 *.pyc
+.DS_Store
+.idea
+abd.egg-info
+venv
+.ipynb_checkpoints
+*.egg-info

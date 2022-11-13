@@ -1,0 +1,33 @@
+name: Release new version
+
+on:
+  workflow_dispatch:
+
+jobs:
+  tagger:
+    name: Tag incrementing
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MY_GITHUB_TOKEN }}
+
+      - id: next_tag
+        uses: paulhatch/semantic-version@v4.0.2
+        with:
+          tag_prefix: "v"
+          format: "${major}.${minor}.${patch}"
+          bump_each_commit: true
+
+      - run: |
+          TAG=${{ steps.next_tag.outputs.version_tag }}
+          MESSAGE='${{ github.event.head_commit.message }}'
+          git config --local user.email "action@github.com"
+          git config --local user.name "gitHub action"
+          echo __version__ = \"${{ steps.next_tag.outputs.version_tag }}\" > src/abf/version.py
+          git add src/abf/version.py
+          git commit -m "bump version to ${{ steps.next_tag.outputs.version_tag }}"
+          git tag -a "${TAG}" -m "${MESSAGE}"
+          git push --atomic origin "${GITHUB_REF#refs/heads/}" "${TAG}"
