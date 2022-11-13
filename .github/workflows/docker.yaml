@@ -23,7 +23,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: phmananias/abd
+          images: phmananias/abf
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
