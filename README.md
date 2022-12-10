@@ -81,7 +81,7 @@ Options:
   --name TEXT                     Place where to save generated files
                                   [default: erie]
   --sensor TEXT                   Define the selected sensor where images will
-                                  be downloaded from: landsat, sentinel, modis
+                                  be downloaded from: landsat, sentinel, modis [default: modis]
   --spanning_period INTEGER       Spanning period used to build the timeseries
                                   and training set  [default: 180]
   --past_steps INTEGER            Past steps to be used as input forecast
@@ -156,7 +156,7 @@ pip install git+https://github.com/pedroananias/abf.git@latest
 ### How to execute the default script?
 
 ```bash
-abf --lat_lon=-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826 --name=erie --from_date=2019-07-11 --reducer --class_mode --disable_attribute_lat_lon
+abf --lat_lon=-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826 --name=erie --instant=2019-07-11 --reducer --class_mode --disable_attribute_lat_lon
 ```
 
 

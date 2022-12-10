@@ -47,6 +47,7 @@ exec((this_directory / "version.py").read_text(encoding="utf-8"))
 @click.option(
     "--sensor",
     default="modis",
+    show_default=True,
     help="Define the selected sensor where images will be downloaded from: "
     "landsat, sentinel, modis",
 )
