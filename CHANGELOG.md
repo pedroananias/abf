@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - README.md
 - CLI tool
+- Exception handlers
 
 ## [0.34.2] - 2022-12-10
 ### Added

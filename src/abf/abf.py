@@ -597,7 +597,7 @@ class Abf:
             return self.apply_water_mask(
                 image, False, apply_attributes=apply_attributes
             )
-        except:
+        except Exception:
             return None
 
     # split images into tiles
@@ -1114,7 +1114,7 @@ class Abf:
                 return df_timeseries
 
         # error finding image in cache
-        except:
+        except Exception:
 
             # image exists
             try:
@@ -1255,7 +1255,7 @@ class Abf:
                     joblib.dump(lons_lats_attributes, cache_files[0], compress=3)
 
             # error in the extraction process
-            except:
+            except Exception:
 
                 # warning
                 print(
@@ -1319,7 +1319,7 @@ class Abf:
             return df_timeseries
 
         # no data do return
-        except:
+        except Exception:
 
             # warning
             print(
@@ -1369,7 +1369,7 @@ class Abf:
             df_timeseries = self.fix_timeseries(df=joblib.load(cache_files[1]))
 
         # if do not exist, process normally and save it in the end
-        except:
+        except Exception:
 
             # warning
             print(
@@ -1390,7 +1390,7 @@ class Abf:
                             df_list=[df_timeseries, df_timeseries_]
                         )
                     gc.collect()
-                except:
+                except Exception:
                     pass
 
             # get only good dates
@@ -1911,7 +1911,7 @@ class Abf:
 
                 # warning
                 print("finished!")
-            except:
+            except Exception:
                 pass
 
         ########################################################################
@@ -2088,7 +2088,7 @@ class Abf:
 
                 # warning
                 print("finished!")
-            except:
+            except Exception:
                 pass
 
         #########################################################################
@@ -2197,7 +2197,7 @@ class Abf:
 
                 # warning
                 print("finished!")
-            except:
+            except Exception:
                 pass
 
         ########################################################################
@@ -2317,7 +2317,7 @@ class Abf:
 
                 # warning
                 print("finished!")
-            except:
+            except Exception:
                 pass
 
         ########################################################################
@@ -5267,7 +5267,7 @@ class Abf:
             print("finished!")
 
         # Second try, save in Google Drive
-        except:
+        except Exception:
             print(
                 "Error! It was not possible to save GeoTIFF localy. Trying to save it in Google Drive..."
             )
@@ -5303,7 +5303,7 @@ class Abf:
             print("finished!")
 
         # Second try, save in Google Drive
-        except:
+        except Exception:
             print(
                 "Error! It was not possible to save RGB GeoTIFF localy. Trying to save it in Google Drive..."
             )
@@ -5338,7 +5338,7 @@ class Abf:
             print("finished!")
 
         # Second try, save in Google Drive
-        except:
+        except Exception:
             print(
                 "Error! It was not possible to save FALSE COLOR GeoTIFF localy. "
                 "Trying to save it in Google Drive..."
