@@ -183,3 +183,16 @@ This script comes with a Jupyter Notebook sandbox example file. To open it, plea
 ```bash
 jupyter-lab
 ```
+
+
+## Apple Arm64 CPU installation instructions
+
+In order to run this script with an Apple Arm64 CPU with Tensorflow support, please follow these steps:
+
+1) brew install --cask anaconda
+2) cd /path/to/abf
+3) conda create -n abf python=3.9
+3) conda activate abf
+4) conda install -c apple tensorflow-deps
+5) pip install tensorflow-macos tensorflow-metal
+6) pip install -e .
