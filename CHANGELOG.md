@@ -5,7 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
--
+- Vertex AI Pipeline implementation
+- Use pathlib with all paths instead
+
+## [0.35.0] - 2022-12-11
+### Added
+- Multithreading for image download on GEE (improves script runtime in about 200%)
+- Loguru for debugging (final results now bring a debug.log file)
+
+### Fixed
+- CLI Tool boolean flags 
 
 ## [0.34.3] - 2022-12-10
 ### Fixed

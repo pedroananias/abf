@@ -41,7 +41,8 @@ setup(
         "seaborn==0.12.0",
         "tensorflow==2.10.0",
         "black==22.10.0",
-        "jupyterlab==3.4.8"
+        "jupyterlab==3.4.8",
+        "loguru==0.6.0"
     ],
     extras_require={},
     entry_points={

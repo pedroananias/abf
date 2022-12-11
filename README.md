@@ -81,7 +81,8 @@ Options:
   --name TEXT                     Place where to save generated files
                                   [default: erie]
   --sensor TEXT                   Define the selected sensor where images will
-                                  be downloaded from: landsat, sentinel, modis [default: modis]
+                                  be downloaded from: landsat, sentinel, modis
+                                  [default: modis]
   --spanning_period INTEGER       Spanning period used to build the timeseries
                                   and training set  [default: 180]
   --past_steps INTEGER            Past steps to be used as input forecast
@@ -140,6 +141,8 @@ Options:
                                   0.5]
   --shapefile TEXT                Use a shapefile to clip a region of interest
   --output_folder TEXT            Specify desired results output folder
+  --threads INTEGER               Specify the number of threads to run image
+                                  download from GEE  [default: 64]
   --help                          Show this message and exit.
 ```
 
@@ -156,7 +159,7 @@ pip install git+https://github.com/pedroananias/abf.git@latest
 ### How to execute the default script?
 
 ```bash
-abf --lat_lon=-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826 --name=erie --instant=2019-07-11
+abf --lat_lon=-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826 --name=erie --instant=2019-07-11 --output_folder=abf
 ```
 
 
@@ -185,9 +188,9 @@ jupyter-lab
 ```
 
 
-## Apple Arm64 CPU installation instructions
+## Apple M1/Arm64 CPU installation instructions
 
-In order to run this script with an Apple Arm64 CPU with Tensorflow support, please follow these steps:
+In order to run this script with an Apple M1/Arm64 CPU with Tensorflow support, please follow these steps:
 
 1) brew install --cask anaconda
 2) cd /path/to/abf

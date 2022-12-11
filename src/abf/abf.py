@@ -29,6 +29,8 @@ import multiprocessing
 from io import BytesIO
 from datetime import datetime as dt
 from datetime import timedelta as td
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from loguru import logger
 
 # Matplotlib
 import matplotlib.pyplot as plt
@@ -118,6 +120,7 @@ class Abf:
     resolution = [0, 0]
     limits = [0, 0]
     pixels_lat_lons = None
+    threads = None
 
     # masks
     water_mask = None
@@ -273,6 +276,7 @@ class Abf:
         test_mode: bool = False,
         shapefile: str = None,
         cloud_threshold: float = 0.50,
+        threads: int = 64,
     ):
 
         # get sensor parameters
@@ -280,8 +284,7 @@ class Abf:
         self.scale = self.sensor_params["scale"] if not scale else scale
 
         # warning
-        print()
-        print("Selected sensor: " + self.sensor_params["name"])
+        logger.debug("Selected sensor: " + self.sensor_params["name"])
 
         # user defined parameters
         self.geometry = geometry
@@ -323,6 +326,7 @@ class Abf:
             if cloud_threshold and cloud_threshold >= 0 and cloud_threshold <= 1.0
             else 0.50
         )
+        self.threads = threads
 
         # fix days_in and days_out (avoid errors)
         self.days_in = self.days_in if self.days_in >= 1 else 1
@@ -430,7 +434,7 @@ class Abf:
             self.splitted_geometry = self.split_geometry()
 
             # warning
-            print(
+            logger.debug(
                 "Statistics: scale="
                 + str(self.sensor_params["scale"])
                 + " meters, pixels="
@@ -563,6 +567,7 @@ class Abf:
         convolve_radius: int = 1,
         apply_attributes: bool = True,
         convolve_force_disabled: bool = False,
+        return_date: bool = False
     ):
         try:
             collection = self.collection.filter(
@@ -594,10 +599,15 @@ class Abf:
                         radius=convolve_radius, units="pixels", normalize=True
                     )
                 )
-            return self.apply_water_mask(
+            image_response = self.apply_water_mask(
                 image, False, apply_attributes=apply_attributes
             )
-        except Exception:
+            if return_date:
+                return date, image_response
+            else:
+                return image_response
+        except Exception as e:
+            logger.error(f"Image extraction error: {e}")
             return None
 
     # split images into tiles
@@ -809,8 +819,7 @@ class Abf:
     def apply_reducer(self, X_train, X_test, mode=1):
 
         # warning
-        print()
-        print("Starting Feature Reducer...")
+        logger.debug("Starting Feature Reducer...")
 
         # start
         n_features_start = X_train.shape[1]
@@ -837,7 +846,7 @@ class Abf:
         n_features_end = X_train.shape[1]
 
         # result
-        print(
+        logger.debug(
             "Feature Reducer finished! Features were reduced from "
             + str(n_features_start)
             + " -> "
@@ -849,8 +858,7 @@ class Abf:
     # normalize indices
     def normalize_indices(self, df: pd.DataFrame):
         if self.normalized:
-            print()
-            print("Normalizing indices...")
+            logger.debug("Normalizing indices...")
             if "mndwi" in self.attributes:
                 df.loc[df["mndwi"] < -1, "mndwi"] = -1
                 df.loc[df["mndwi"] > 1, "mndwi"] = 1
@@ -1082,7 +1090,7 @@ class Abf:
     ):
 
         # warning
-        print("Processing date [" + str(date.strftime("%Y-%m-%d")) + "]...")
+        logger.debug("Processing date [" + str(date.strftime("%Y-%m-%d")) + "]...")
 
         # attributes
         lons_lats_attributes = None
@@ -1131,7 +1139,7 @@ class Abf:
                 for i, geometry in enumerate(self.splitted_geometry):
 
                     # geometry
-                    print(
+                    logger.debug(
                         "Extracting geometry ("
                         + str(len(lons_lats_attributes))
                         + ") "
@@ -1192,7 +1200,7 @@ class Abf:
                         )
 
                         # warning
-                        print(
+                        logger.debug(
                             "Pixel and cloud score for geometry #"
                             + str(i + 1)
                             + ": "
@@ -1237,7 +1245,7 @@ class Abf:
                 if len(lons_lats_attributes) == 0:
 
                     # warning
-                    print("Image is not good for processing and it was discarded!")
+                    logger.warning("Image is not good for processing and it was discarded!")
 
                     # Clear pixels, image is not good
                     lons_lats_attributes = None
@@ -1258,7 +1266,7 @@ class Abf:
             except Exception:
 
                 # warning
-                print(
+                logger.error(
                     "Error while extracting pixels from image "
                     + str(date.strftime("%Y-%m-%d"))
                     + ": "
@@ -1309,7 +1317,7 @@ class Abf:
             df_timeseries["pixel"] = range(0, len(df_timeseries))
 
             # show example of time series
-            print(df_timeseries.head())
+            logger.debug(df_timeseries.head())
 
             # gabagge collect
             del lons_lats_attributes, extra_attributes
@@ -1322,7 +1330,7 @@ class Abf:
         except Exception:
 
             # warning
-            print(
+            logger.error(
                 "Error while extracting pixels from image "
                 + str(date.strftime("%Y-%m-%d"))
                 + ": "
@@ -1344,8 +1352,7 @@ class Abf:
     def process_timeseries_data(self, force_cache: bool = False):
 
         # warning
-        print()
-        print("Starting time series processing ...")
+        logger.debug("Starting time series processing ...")
 
         # attributes
         df_timeseries = pd.DataFrame(columns=self.df_columns)
@@ -1356,11 +1363,11 @@ class Abf:
         try:
 
             # warning
-            print("Trying to extract it from the cache...")
+            logger.debug("Trying to extract it from the cache...")
 
             # warning 2
             if self.force_cache or force_cache:
-                print(
+                logger.debug(
                     "User selected option 'force_cache'! Forcing building of time series..."
                 )
                 raise Exception()
@@ -1372,26 +1379,44 @@ class Abf:
         except Exception:
 
             # warning
-            print(
+            logger.error(
                 "Error trying to get it from cache: either doesn't exist or is corrupted! Creating it again..."
             )
 
-            # process all dates in time series
-            for date in self.dates_timeseries_interval:
-
-                # extract pixels from image
-                # check if is good image (with pixels)
-                try:
-                    df_timeseries_ = self.extract_image_pixels(
-                        image=self.extract_image_from_collection(date=date), date=date
-                    )
-                    if df_timeseries_.size > 0:
-                        df_timeseries = self.merge_timeseries(
-                            df_list=[df_timeseries, df_timeseries_]
+            # extract images from collections
+            futures_images = []
+            futures = []
+            with ThreadPoolExecutor(max_workers=self.threads) as executor:
+                for date_ in self.dates_timeseries_interval:
+                    futures_images.append(
+                        executor.submit(
+                            self.extract_image_from_collection,
+                            date=date_,
+                            return_date=True,
                         )
-                    gc.collect()
-                except Exception:
-                    pass
+                    )
+
+                # process images extracted
+                for future_image in as_completed(futures_images):
+                    if future_image.result():
+                        date_, image = future_image.result()
+                        futures.append(
+                            executor.submit(
+                                self.extract_image_pixels, image=image, date=date_
+                            )
+                        )
+
+                # process images result when completed
+                for future in as_completed(futures):
+                    try:
+                        df_timeseries_ = future.result()
+                        if df_timeseries_.size > 0:
+                            df_timeseries = self.merge_timeseries(
+                                df_list=[df_timeseries, df_timeseries_]
+                            )
+                            gc.collect()
+                    except Exception:
+                        pass
 
             # get only good dates
             # fix dataframe index
@@ -1445,23 +1470,21 @@ class Abf:
         gc.collect()
 
         # warning
-        print("finished!")
+        logger.debug("finished!")
 
     # process training dataset
     def process_training_data(self, df: pd.DataFrame):
 
         # warning
-        print()
-        print(
+        logger.debug(
             "Processing training data (" + str(len(df["date"].unique())) + " images)..."
         )
 
         # show statistics
-        print(df.describe())
+        logger.debug(df.describe())
 
         # warning
-        print()
-        print("Filling empty dates...")
+        logger.debug("Filling empty dates...")
 
         # attributes
         attributes_clear = [a for a in self.attributes_clear if a != "cloud"]
@@ -1479,11 +1502,10 @@ class Abf:
         self.df_timeseries = df[self.df_columns + ["label"]]
 
         # show statistics
-        print(df.describe())
+        logger.debug(df.describe())
 
         # warning
-        print()
-        print("Selecting classification dates...")
+        logger.debug("Selecting classification dates...")
 
         # get the classification dates based o the selected days_out
         self.classification_dates = [
@@ -1493,11 +1515,10 @@ class Abf:
         self.classification_dates.sort()
 
         # show dates
-        print(self.classification_dates)
+        logger.debug(self.classification_dates)
 
         # warning
-        print()
-        print("Selecting prediction dates...")
+        logger.debug("Selecting prediction dates...")
 
         # build base dates that will be used in prediction
         self.predict_dates = [
@@ -1507,11 +1528,10 @@ class Abf:
         self.predict_dates.sort()
 
         # show dates
-        print(self.predict_dates)
+        logger.debug(self.predict_dates)
 
         # warning
-        print()
-        print("Shifting dates to build training set...")
+        logger.debug("Shifting dates to build training set...")
 
         # shifting dates em buling training set
         df_pixel = misc.series_to_supervised(
@@ -1602,7 +1622,7 @@ class Abf:
             df_pixel = df_pixel.query(" and ".join(df_queries))
 
         # show statistics
-        print(df_pixel.describe())
+        logger.debug(df_pixel.describe())
 
         # data
         X = df_pixel[df_pixel.columns[: -len(out_labels)]].values.reshape(
@@ -1613,8 +1633,7 @@ class Abf:
         )
         X = self.scaler.fit_transform(X, y)
         if self.shuffle:
-            print()
-            print("Shuffling...")
+            logger.debug("Shuffling...")
         X_train, X_test, y_train, y_test = model_selection.train_test_split(
             X, y, train_size=0.90, shuffle=self.shuffle, random_state=self.random_state
         )
@@ -1632,8 +1651,7 @@ class Abf:
         gc.collect()
 
         # Final statistics
-        print()
-        print(
+        logger.debug(
             "Train datasets length: train=(%s, %s), test=(%s, %s)"
             % (
                 self.df_train[0].shape,
@@ -1642,14 +1660,13 @@ class Abf:
                 self.df_test[1].shape,
             )
         )
-        print("finished!")
+        logger.debug("finished!")
 
     # start training process
     def train(self, disable_gpu: bool = True, batch_size: int = 2048):
 
         # jump line
-        print()
-        print("Starting the training process...")
+        logger.debug("Starting the training process...")
 
         # check if it should disable GPU in Tensorflow process
         if disable_gpu:
@@ -1683,17 +1700,15 @@ class Abf:
         self.df_randomizedsearch = [X_gridsearch, y_gridsearch]
 
         # warning
-        print()
-        print(
+        logger.debug(
             "RandomizedSearchCV datasets length: rs=(%s, %s)"
             % (X_gridsearch.shape, y_gridsearch.shape)
         )
 
         # warning
         if self.class_mode:
-            print()
-            print("RandomizedSearchCV datasets frequency:")
-            print(
+            logger.debug("RandomizedSearchCV datasets frequency:")
+            logger.debug(
                 np.asarray((np.unique(y_gridsearch, return_counts=True)), dtype=int).T
             )
 
@@ -1726,10 +1741,9 @@ class Abf:
                             )
                         )
                     )
-                print()
-                print("Defining class weights...")
-                print(class_weight)
-                print(class_weight2)
+                logger.debug("Defining class weights...")
+                logger.debug(class_weight)
+                logger.debug(class_weight2)
             else:
                 class_weight = None
                 class_weight2 = None
@@ -1748,8 +1762,7 @@ class Abf:
                 tf.keras.backend.set_floatx("float64")
 
                 # jump line
-                print()
-                print(
+                logger.debug(
                     "Creating the MultiLayer Perceptron with RandomizedSearchCV parameterization model..."
                 )
 
@@ -1881,8 +1894,7 @@ class Abf:
                 self.classifiers[str_model] = mlp
 
                 # warning
-                print()
-                print("Evaluating the " + str(str_model) + " model...")
+                logger.debug("Evaluating the " + str(str_model) + " model...")
 
                 # get predictions on test set
                 y_pred = mlp.predict(X_test)
@@ -1905,12 +1917,12 @@ class Abf:
                 )
 
                 # reports
-                print(
+                logger.debug(
                     "Report for the " + str(str_model) + " model: " + measures["string"]
                 )
 
                 # warning
-                print("finished!")
+                logger.debug("finished!")
             except Exception:
                 pass
 
@@ -1927,8 +1939,7 @@ class Abf:
                 tf.keras.backend.set_floatx("float64")
 
                 # jump line
-                print()
-                print(
+                logger.debug(
                     "Creating the LSTM (Bidirection w/ Encoder-Decoder) with RandomizedSearchCV parameterization model..."
                 )
 
@@ -2064,8 +2075,7 @@ class Abf:
                 self.classifiers[str_model] = lstm
 
                 # warning
-                print()
-                print("Evaluating the " + str(str_model) + " model...")
+                logger.debug("Evaluating the " + str(str_model) + " model...")
 
                 # get predictions on test set
                 y_pred = lstm.predict(
@@ -2082,12 +2092,12 @@ class Abf:
                 )
 
                 # reports
-                print(
+                logger.debug(
                     "Report for the " + str(str_model) + " model: " + measures["string"]
                 )
 
                 # warning
-                print("finished!")
+                logger.debug("finished!")
             except Exception:
                 pass
 
@@ -2101,8 +2111,7 @@ class Abf:
             try:
 
                 # jump line
-                print()
-                print(
+                logger.debug(
                     "Creating the Random Forest Regressor/Classifier with RandomizedSearchCV parameterization model..."
                 )
 
@@ -2179,8 +2188,7 @@ class Abf:
                 self.classifiers[str_model] = rf
 
                 # warning
-                print()
-                print("Evaluating the " + str(str_model) + " model...")
+                logger.debug("Evaluating the " + str(str_model) + " model...")
 
                 # get predictions on test set
                 y_pred_label = self.apply_label_y(rf.predict(X_test))
@@ -2191,12 +2199,12 @@ class Abf:
                 )
 
                 # reports
-                print(
+                logger.debug(
                     "Report for the " + str(str_model) + " model: " + measures["string"]
                 )
 
                 # warning
-                print("finished!")
+                logger.debug("finished!")
             except Exception:
                 pass
 
@@ -2210,8 +2218,7 @@ class Abf:
             try:
 
                 # jump line
-                print()
-                print(
+                logger.debug(
                     "Creating the Support Vector Machine Regressor/Classifier with RandomizedSearchCV parameterization model..."
                 )
 
@@ -2299,8 +2306,7 @@ class Abf:
                 self.classifiers[str_model] = svm_model
 
                 # warning
-                print()
-                print("Evaluating the " + str(str_model) + " model...")
+                logger.debug("Evaluating the " + str(str_model) + " model...")
 
                 # get predictions on test set
                 y_pred_label = self.apply_label_y(svm_model.predict(X_test))
@@ -2311,12 +2317,12 @@ class Abf:
                 )
 
                 # reports
-                print(
+                logger.debug(
                     "Report for the " + str(str_model) + " model: " + measures["string"]
                 )
 
                 # warning
-                print("finished!")
+                logger.debug("finished!")
             except Exception:
                 pass
 
@@ -2326,8 +2332,7 @@ class Abf:
     def predict(self, folder: str, path: str = None, chla_threshold: int = 20):
 
         # jump line
-        print()
-        print("Starting the predicting process...")
+        logger.debug("Starting the predicting process...")
 
         # attributes
         attributes_clear = [a for a in self.attributes_clear if a != "cloud"]
@@ -2375,33 +2380,57 @@ class Abf:
         self.collection = collection
 
         # process all dates that will be used in prediction
-        print()
-        print(
+        logger.debug(
             "Extracting images ("
             + str(len(self.classification_dates))
             + ") that it will be used in the prediction process"
         )
-        for date in self.classification_dates:
-            # extract pixels from image
-            # check if is good image (with pixels)
-            df_classification_ = self.extract_image_pixels(
-                image=self.extract_image_from_collection(date=date),
-                date=date,
-                disable_threshold=True,
-            )
-            if df_classification_.size > 0:
-                df_classification = self.merge_timeseries(
-                    df_list=[df_classification, df_classification_]
+
+        # extract images from collections
+        futures_images = []
+        futures = []
+        with ThreadPoolExecutor(max_workers=self.threads) as executor:
+            for date_ in self.classification_dates:
+                futures_images.append(
+                    executor.submit(
+                        self.extract_image_from_collection,
+                        date=date_,
+                        return_date=True,
+                    )
                 )
 
-            # get only good dates
-            # fix dataframe index
-            if not df_classification is None:
-                df_classification["index"] = range(0, len(df_classification))
+            # process images extracted
+            for future_image in as_completed(futures_images):
+                if future_image.result():
+                    date_, image = future_image.result()
+                    futures.append(
+                        executor.submit(
+                            self.extract_image_pixels,
+                            image=image,
+                            date=date_,
+                            disable_threshold=True,
+                        )
+                    )
+
+            # process images result when completed
+            for future in as_completed(futures):
+                try:
+                    df_classification_ = future.result()
+                    if df_classification_.size > 0:
+                        df_classification = self.merge_timeseries(
+                            df_list=[df_classification, df_classification_]
+                        )
+                        gc.collect()
+                except Exception:
+                    pass
+
+        # get only good dates
+        # fix dataframe index
+        if not df_classification is None:
+            df_classification["index"] = range(0, len(df_classification))
 
         # process all dates that will be predicted
-        print()
-        print(
+        logger.debug(
             "Extracting images ("
             + str(len(self.predict_dates))
             + ") that it will be used as the validation dataset (to be predicted)"
@@ -2426,8 +2455,7 @@ class Abf:
                 df_predict["index"] = range(0, len(df_predict))
 
         # process all dates that will be used as reference
-        print()
-        print(
+        logger.debug(
             "Extracting images ("
             + str(len(self.predict_dates))
             + ") that it will be used as the reference dataset (to be predicted)"
@@ -2436,7 +2464,7 @@ class Abf:
             for date in self.predict_dates:
 
                 # warning
-                print("Processing date [" + str(date.strftime("%Y-%m-%d")) + "]...")
+                logger.debug("Processing date [" + str(date.strftime("%Y-%m-%d")) + "]...")
 
                 # initialize vars
                 lons_lats_attributes = np.array([]).reshape(0, 3)
@@ -2517,7 +2545,7 @@ class Abf:
             df_reference.fillna(0, inplace=True)
 
         except Exception as e:
-            print("Error while extracting image pixels: " + str(e))
+            logger.error("Error while extracting image pixels: " + str(e))
 
         # remove dummies
         for attribute in attributes_clear:
@@ -2621,8 +2649,7 @@ class Abf:
         self.df_classification = X
 
         # Final statistics
-        print()
-        print(
+        logger.debug(
             "Prediction datasets length: classification=(%s), predict=(%s, %s)"
             % (self.df_classification.shape, len(df_predict), len(df_predict.columns))
         )
@@ -2992,8 +3019,7 @@ class Abf:
                 model_short = "svm"
 
             # jump line
-            print()
-            print("Starting the prediction for " + str(model) + " model...")
+            logger.debug("Starting the prediction for " + str(model) + " model...")
 
             ###########################################################################
             # Pre-calculations and fixes
@@ -3405,8 +3431,7 @@ class Abf:
                     if plot_type == "pixel":
 
                         # warning
-                        print()
-                        print(
+                        logger.debug(
                             "[Pixel] Evaluating prediction for date "
                             + str(date.strftime("%Y-%m-%d"))
                             + "..."
@@ -3433,7 +3458,7 @@ class Abf:
                         measures = misc.concordance_measures(
                             metrics.confusion_matrix(y_true, y_pred), y_true, y_pred
                         )
-                        print(measures["string"])
+                        logger.debug(measures["string"])
 
                         # add results - pixel
                         dict_results.append(
@@ -3590,8 +3615,7 @@ class Abf:
                     elif plot_type == "grid":
 
                         # warning
-                        print()
-                        print(
+                        logger.debug(
                             "[Grid] Evaluating prediction for date "
                             + str(date.strftime("%Y-%m-%d"))
                             + "..."
@@ -3616,7 +3640,7 @@ class Abf:
                         measures = misc.concordance_measures(
                             metrics.confusion_matrix(y_true, y_pred), y_true, y_pred
                         )
-                        print(measures["string"])
+                        logger.debug(measures["string"])
 
                         # add results - pixel
                         dict_results.append(
@@ -3728,8 +3752,7 @@ class Abf:
                     elif plot_type == "scene":
 
                         # warning
-                        print()
-                        print(
+                        logger.debug(
                             "[Scene] Evaluating prediction for date "
                             + str(date.strftime("%Y-%m-%d"))
                             + "..."
@@ -3786,7 +3809,7 @@ class Abf:
                         measures = misc.concordance_measures(
                             metrics.confusion_matrix(y_true, y_pred), y_true, y_pred
                         )
-                        print(measures["string"])
+                        logger.debug(measures["string"])
 
                         # add results do dataframe that will be used
                         # to create final graphic
@@ -3973,14 +3996,13 @@ class Abf:
         self.df_results = pd.DataFrame(dict_results, columns=self.df_columns_results)
 
         # warning
-        print("finished!")
+        logger.debug("finished!")
 
     # calculate prediction reduction performance (median)
     def predict_reduction(self, folder: str, reduction: str = "median"):
 
         # jump line
-        print()
-        print("Starting the prediction reduction performance calculation (median)...")
+        logger.debug("Starting the prediction reduction performance calculation (median)...")
 
         # attributes
         attributes_clear = [a for a in self.attributes_clear if a != "cloud"]
@@ -4232,8 +4254,7 @@ class Abf:
 
                 # Pixel-wise (Prediction)
                 # warning
-                print()
-                print("[Pixel-" + str(reduction) + "] Evaluating reduction...")
+                logger.debug("[Pixel-" + str(reduction) + "] Evaluating reduction...")
 
                 # labels arrays
                 if len(df_reduction) > 0:
@@ -4247,7 +4268,7 @@ class Abf:
                 measures = misc.concordance_measures(
                     metrics.confusion_matrix(y_true, y_pred), y_true, y_pred
                 )
-                print(measures["string"])
+                logger.debug(measures["string"])
 
                 # add results - pixel
                 dict_results.append(
@@ -4390,8 +4411,7 @@ class Abf:
                 # Grid-wise (Prediction)
                 # measures
                 # warning
-                print()
-                print("[Grid-" + str(reduction) + "] Evaluating reduction...")
+                logger.debug("[Grid-" + str(reduction) + "] Evaluating reduction...")
 
                 # measures
                 if len(df_reduction) > 0:
@@ -4405,7 +4425,7 @@ class Abf:
                 measures = misc.concordance_measures(
                     metrics.confusion_matrix(y_true, y_pred), y_true, y_pred
                 )
-                print(measures["string"])
+                logger.debug(measures["string"])
 
                 # add results - grid
                 dict_results.append(
@@ -4549,8 +4569,7 @@ class Abf:
                 # Scene-wise (Validation X Prediction)
                 # measures
                 # warning
-                print()
-                print("[Scene-median] Evaluating reduction...")
+                logger.debug("[Scene-median] Evaluating reduction...")
 
                 # measures
                 if len(df_scene_median) > 0:
@@ -4568,7 +4587,7 @@ class Abf:
                 measures = misc.concordance_measures(
                     metrics.confusion_matrix(y_true, y_pred), y_true, y_pred
                 )
-                print(measures["string"])
+                logger.debug(measures["string"])
 
                 # add results - scene
                 dict_results.append(
@@ -4691,7 +4710,7 @@ class Abf:
             self.df_results = self.df_results.append(dict_results)
 
         # warning
-        print("finished!")
+        logger.debug("finished!")
 
     # validate imagem using a ROI from GEE
     # GEE Code Console: https://code.earthengine.google.com
@@ -4720,8 +4739,7 @@ class Abf:
 
                         # extract FeatureCollection from roi selected through
                         # the GEE Code Console and process image
-                        print()
-                        print(
+                        logger.debug(
                             "[ROI] '"
                             + path
                             + "/"
@@ -4785,7 +4803,7 @@ class Abf:
                         # error: no data in ROI or it does not exist
                         except Exception as e:
                             has_roi = False
-                            print("Error while extracting roi pixels: " + str(e))
+                            logger.error("Error while extracting roi pixels: " + str(e))
 
                     # roi was found?
                     if has_roi:
@@ -4827,7 +4845,7 @@ class Abf:
                         )
 
                         # reports
-                        print(measures["string"])
+                        logger.debug(measures["string"])
 
                         # add results - pixel
                         self.df_results = self.df_results.append(
@@ -4924,14 +4942,13 @@ class Abf:
                         )
 
         # warning
-        print("finished!")
+        logger.debug("finished!")
 
     # save classification plot
     def save_timeseries_plot(self, df: pd.DataFrame, path: str, join: bool = False):
 
         # warning
-        print()
-        print(
+        logger.debug(
             "Creating time series (join="
             + str(join)
             + ") plot to file '"
@@ -5027,14 +5044,13 @@ class Abf:
         fig.savefig(path, bbox_inches="tight")
 
         # warning
-        print("finished!")
+        logger.debug("finished!")
 
     # save attriutes pair plot
     def save_attributes_pairplot(self, df: pd.DataFrame, path: str):
 
         # warning
-        print()
-        print("Creating attributes pair plot to file '" + path + "'...")
+        logger.debug("Creating attributes pair plot to file '" + path + "'...")
 
         # attributes
         attributes = [a for a in self.attributes if a != "cloud"]
@@ -5058,14 +5074,13 @@ class Abf:
         plot.savefig(path)
 
         # warning
-        print("finished!")
+        logger.debug("finished!")
 
     # save indices pair plot
     def save_indices_pairplot(self, df: pd.DataFrame, path: str):
 
         # warning
-        print()
-        print("Creating indices pair plot to file '" + path + "'...")
+        logger.debug("Creating indices pair plot to file '" + path + "'...")
 
         # indices
         indices = [a for a in self.attributes_clear if a != "cloud"]
@@ -5089,14 +5104,13 @@ class Abf:
         plot.savefig(path)
 
         # warning
-        print("finished!")
+        logger.debug("finished!")
 
     # save results plot
     def save_results_plot(self, df: pd.DataFrame, path: str):
 
         # warning
-        print()
-        print("Creating results plot to file '" + path + "'...")
+        logger.debug("Creating results plot to file '" + path + "'...")
 
         # get models group
         df = df[["model", "type", "date_predicted", "acc", "tau", "mcc", "rmse"]]
@@ -5167,7 +5181,7 @@ class Abf:
         fig.savefig(path, bbox_inches="tight")
 
         # warning
-        print("finished!")
+        logger.debug("finished!")
 
     # save a image to file
     def save_image_tiff(
@@ -5180,8 +5194,7 @@ class Abf:
     ):
 
         # warning
-        print()
-        print(
+        logger.debug(
             "Saving image in tiff to file '"
             + path
             + "' (first try, based on image size) or to your Google Drive at folder '"
@@ -5249,7 +5262,7 @@ class Abf:
         # Separated bands
         # First try, save in local folder
         try:
-            print(
+            logger.debug(
                 "Trying to save "
                 + date.strftime("%Y-%m-%d")
                 + " GeoTIFF to local folder..."
@@ -5264,14 +5277,14 @@ class Abf:
             open(path, "wb").write(
                 requests.get(image_download_url, allow_redirects=True).content
             )
-            print("finished!")
+            logger.debug("finished!")
 
         # Second try, save in Google Drive
         except Exception:
-            print(
+            logger.error(
                 "Error! It was not possible to save GeoTIFF localy. Trying to save it in Google Drive..."
             )
-            print(str(traceback.format_exc()))
+            logger.debug(str(traceback.format_exc()))
             for band in bands:
                 task = ee.batch.Export.image.toDrive(
                     image=image.select(band),
@@ -5280,12 +5293,12 @@ class Abf:
                     region=self.geometry,
                 )
                 task.start()
-                print(task.status())
+                logger.debug(task.status())
 
         # RGB
         # First try, save in local folder
         try:
-            print(
+            logger.debug(
                 "Trying to save "
                 + date.strftime("%Y-%m-%d")
                 + " RGB GeoTIFF to local folder..."
@@ -5300,14 +5313,14 @@ class Abf:
             open(path + "_rgb", "wb").write(
                 requests.get(image_download_url, allow_redirects=True).content
             )
-            print("finished!")
+            logger.debug("finished!")
 
         # Second try, save in Google Drive
         except Exception:
-            print(
+            logger.error(
                 "Error! It was not possible to save RGB GeoTIFF localy. Trying to save it in Google Drive..."
             )
-            print(str(traceback.format_exc()))
+            logger.debug(str(traceback.format_exc()))
             task = ee.batch.Export.image.toDrive(
                 image=imageRGB,
                 folder=folderName,
@@ -5315,12 +5328,12 @@ class Abf:
                 region=self.geometry,
             )
             task.start()
-            print(task.status())
+            logger.debug(task.status())
 
         # FCO
         # First try, save in local folder
         try:
-            print(
+            logger.debug(
                 "Trying to save "
                 + date.strftime("%Y-%m-%d")
                 + " FALSE COLOR GeoTIFF to local folder..."
@@ -5335,15 +5348,15 @@ class Abf:
             open(path + "_fco", "wb").write(
                 requests.get(image_download_url, allow_redirects=True).content
             )
-            print("finished!")
+            logger.debug("finished!")
 
         # Second try, save in Google Drive
         except Exception:
-            print(
+            logger.error(
                 "Error! It was not possible to save FALSE COLOR GeoTIFF localy. "
                 "Trying to save it in Google Drive..."
             )
-            print(str(traceback.format_exc()))
+            logger.debug(str(traceback.format_exc()))
             task = ee.batch.Export.image.toDrive(
                 image=imageFCO,
                 folder=folderName,
@@ -5351,10 +5364,10 @@ class Abf:
                 region=self.geometry,
             )
             task.start()
-            print(task.status())
+            logger.debug(task.status())
 
         # warning
-        print("finished!")
+        logger.debug("finished!")
 
     # save a image to file
     def save_image(
@@ -5366,8 +5379,7 @@ class Abf:
     ):
 
         # warning
-        print()
-        print("Saving image to file '" + path + "'...")
+        logger.debug("Saving image to file '" + path + "'...")
 
         # default to RGB bands
         if not bands:
@@ -5388,7 +5400,7 @@ class Abf:
         imageIO.save(path)
 
         # warning
-        print("finished!")
+        logger.debug("finished!")
 
     # save a collection to folder (time series)
     def save_image_collection(
@@ -5396,8 +5408,7 @@ class Abf:
     ):
 
         # warning
-        print()
-        print("Saving image collection to folder '" + path + "'...")
+        logger.debug("Saving image collection to folder '" + path + "'...")
 
         # check if folder exists
         if not os.path.exists(path):
@@ -5413,17 +5424,16 @@ class Abf:
             )
 
         # warning
-        print("finished!")
+        logger.debug("finished!")
 
     # save a dataset to file
     def save_dataset(self, df: pd.DataFrame, path: str):
 
         # warning
-        print()
-        print("Saving dataset to file '" + path + "'...")
+        logger.debug("Saving dataset to file '" + path + "'...")
 
         # saving dataset to file
         df.to_csv(r"" + path, index=False)
 
         # warning
-        print("finished!")
+        logger.debug("finished!")

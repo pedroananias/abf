@@ -1,4 +1,6 @@
 # Main
+import sys
+
 import ee
 import pandas as pd
 import time
@@ -8,6 +10,7 @@ import traceback
 import gc
 from pathlib import Path
 import click
+from loguru import logger
 
 # Sub
 from datetime import datetime as dt
@@ -24,57 +27,49 @@ __version__ = ""
 exec((this_directory / "version.py").read_text(encoding="utf-8"))
 
 
-@click.command()
+@click.command("forecast", context_settings={"show_default": True})
 @click.option(
     "--lat_lon",
-    show_default=True,
     default="-83.48811946836814,41.85776095627803,-83.18290554014548,41.677617395337826",
     help="Two diagonal points (Latitude 1, Longitude 1, Latitude 2, Longitude 2) "
          "of the study area",
 )
 @click.option(
     "--instant",
-    show_default=True,
     default="2013-10-11",
     help="Date to end time series (it will forecast 5 days starting from this date)",
 )
 @click.option(
     "--name",
-    show_default=True,
     default="erie",
     help="Place where to save generated files",
 )
 @click.option(
     "--sensor",
     default="modis",
-    show_default=True,
     help="Define the selected sensor where images will be downloaded from: "
     "landsat, sentinel, modis",
 )
 @click.option(
     "--spanning_period",
-    show_default=True,
     type=int,
     default=180,
     help="Spanning period used to build the timeseries and training set",
 )
 @click.option(
     "--past_steps",
-    show_default=True,
     type=int,
     default=4,
     help="Past steps to be used as input forecast",
 )
 @click.option(
     "--forecasting_period",
-    show_default=True,
     type=int,
     default=5,
     help="Forecasting period to be used as output forecast",
 )
 @click.option(
     "--spatial_context_size",
-    show_default=True,
     type=int,
     default=7,
     help="Spatial context size in pixels that will be used "
@@ -82,13 +77,11 @@ exec((this_directory / "version.py").read_text(encoding="utf-8"))
 )
 @click.option(
     "--model",
-    show_default=True,
     default="rf",
     help="Select the desired module: mlp, lstm, rf, svm or all (None)",
 )
 @click.option(
     "--fill_missing",
-    show_default=True,
     default="time",
     help="Defines algorithm to be used to fill empty dates and values: "
          "dummy, ffill, bfill, time, linear",
@@ -96,14 +89,12 @@ exec((this_directory / "version.py").read_text(encoding="utf-8"))
 @click.option(
     "--remove_dummies",
     is_flag=True,
-    show_default=True,
     default=False,
     help="Defines if the dummies will be removed before training "
          "(only works with fill_missing=dummy)",
 )
 @click.option(
     "--scaler",
-    show_default=True,
     default="minmax",
     help="Defines algorithm to be used in the data scalling process: "
          "robust, minmax or standard",
@@ -111,14 +102,12 @@ exec((this_directory / "version.py").read_text(encoding="utf-8"))
 @click.option(
     "--disable_reducer",
     is_flag=True,
-    show_default=True,
     default=False,
     help="Defines if reducer will not be applied to remove unnecessary features",
 )
 @click.option(
     "--disable_normalization",
     is_flag=True,
-    show_default=True,
     default=False,
     help="Defines if normalization (-1,1) will not be applied "
          "to indices mndwi, ndvi and sabi",
@@ -126,27 +115,23 @@ exec((this_directory / "version.py").read_text(encoding="utf-8"))
 @click.option(
     "--regression_mode",
     is_flag=True,
-    show_default=True,
     default=False,
     help="Defines whether will use raw values or classes in the regression models",
 )
 @click.option(
     "--class_weight",
     is_flag=True,
-    show_default=True,
     default=False,
     help="Defines whether classes will have defined weights for each",
 )
 @click.option(
     "--propagate",
     is_flag=True,
-    show_default=True,
     default=False,
     help="Defines whether predictions will be propagated ahead",
 )
 @click.option(
     "--rs_train_size",
-    show_default=True,
     type=float,
     default=500.0,
     help="It allow increase the randomized search dataset training size "
@@ -154,35 +139,30 @@ exec((this_directory / "version.py").read_text(encoding="utf-8"))
 )
 @click.option(
     "--rs_iter",
-    show_default=True,
     type=int,
     default=500,
     help="It allow increase the randomized search iteration size",
 )
 @click.option(
     "--pca_size",
-    show_default=True,
     type=float,
     default=0.900,
     help="Define PCA reducer variance size",
 )
 @click.option(
     "--reduction",
-    show_default=True,
     default="median",
     help="Define which reduction (median or min) will be used in the reduction stats",
 )
 @click.option(
     "--convolve",
     is_flag=True,
-    show_default=True,
     default=False,
     help="Define if a convolution box-car low-pass filter will be applied "
          "to images before training",
 )
 @click.option(
     "--convolve_radius",
-    show_default=True,
     type=int,
     default=1,
     help="Define the amont of radius will be used in "
@@ -191,41 +171,35 @@ exec((this_directory / "version.py").read_text(encoding="utf-8"))
 @click.option(
     "--enable_attribute_lat_lon",
     is_flag=True,
-    show_default=True,
     default=False,
     help="Enable attributes lat and lon in the training process",
 )
 @click.option(
     "--disable_attribute_doy",
     is_flag=True,
-    show_default=True,
     default=False,
     help="Disable attribute doy from training modeling",
 )
 @click.option(
     "--disable_shuffle",
     is_flag=True,
-    show_default=True,
     default=False,
     help="Disable data shutffle before splitting into train and test matrix",
 )
 @click.option(
     "--save_pairplots",
     is_flag=True,
-    show_default=True,
     default=False,
     help="Save pairplots from attributes and indices",
 )
 @click.option(
     "--save_train",
     is_flag=True,
-    show_default=True,
     default=False,
     help="Enable saving the training dataset (csv)",
 )
 @click.option(
     "--cloud_threshold",
-    show_default=True,
     type=float,
     default=0.50,
     help="Define which cloud threshold will be used in the timeseries modelling process",
@@ -235,9 +209,19 @@ exec((this_directory / "version.py").read_text(encoding="utf-8"))
     help="Use a shapefile to clip a region of interest",
 )
 @click.option(
+    "--force_cache/--no-force-cache",
+    help="Force cache resetting to prevent image errors",
+    default=False,
+)
+@click.option(
     "--output_folder",
-    default=None,
+    default="",
     help="Specify desired results output folder",
+)
+@click.option(
+    "--threads",
+    default=64,
+    help="Specify the number of threads to run image download from GEE",
 )
 def forecast(
     lat_lon: str,
@@ -270,7 +254,9 @@ def forecast(
     save_train: bool,
     cloud_threshold: float,
     shapefile: str,
+    force_cache: bool,
     output_folder: str,
+    threads: int,
 ):
     try:
 
@@ -281,7 +267,7 @@ def forecast(
         try:
             ee.Initialize()
         except (Exception, EEException) as e:
-            print(f"Google Earth Engine authentication/initialization error: {e}. "
+            logger.debug(f"Google Earth Engine authentication/initialization error: {e}. "
                   f"Please, manually log in GEE paltform with `earthengine authenticate`. "
                   f"** See README.md file for the complete instructions **")
 
@@ -345,6 +331,15 @@ def forecast(
         if not os.path.exists(folder):
             os.mkdir(folder)
 
+        # enable logging file
+        logger.add(
+            sys.stderr,
+            format="{time} {level} {message}",
+            filter="my_module",
+            level="DEBUG",
+        )
+        logger.add(folder + "/debug.log", level="DEBUG")
+
         # create algorithm
         algorithm = Abf(
             days_threshold=spanning_period,
@@ -354,7 +349,7 @@ def forecast(
             lat_lon=lat_lon,
             path=folder,
             cache_path=folderCache,
-            force_cache=False,
+            force_cache=force_cache,
             morph_op=None,
             morph_op_iters=1,
             convolve=convolve,
@@ -380,6 +375,7 @@ def forecast(
             test_mode=False,
             shapefile=shapefile,
             cloud_threshold=cloud_threshold,
+            threads=threads,
         )
 
         # preprocessing
@@ -467,18 +463,15 @@ def forecast(
             "***** Script execution completed successfully (-- %s seconds --) *****"
             % script_time_all
         )
-        print()
-        print(debug)
+        logger.debug(debug)
 
     except Exception:
 
         # ### Script execution error warning
 
         # Execution
-        print()
-        print()
         debug = "***** Error on script execution: " + str(traceback.format_exc())
-        print(debug)
+        logger.debug(debug)
 
         # Removes the folder created initially with the result of execution
         script_time_all = time.time() - start_time
@@ -486,7 +479,7 @@ def forecast(
             "***** Script execution could not be completed (-- %s seconds --) *****"
             % script_time_all
         )
-        print(debug)
+        logger.debug(debug)
 
 
 if __name__ == "__main__":
