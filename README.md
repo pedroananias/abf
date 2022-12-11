@@ -63,7 +63,7 @@ docker run -p 8888:8888 --name abf abf:latest
 
 ## Command line tool
 
-This module brings a default command line `adf` for you. To see available parameters, please run:
+This module brings a default command line `abf` for you. To see available parameters, please run:
 
 ```bash
 > abf --help
